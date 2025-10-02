@@ -6,4 +6,5 @@ import clientPromise from "./lib/mongodb"
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: MongoDBAdapter(clientPromise),
+  trustHost: true, // Required for Netlify and other hosting platforms
 })

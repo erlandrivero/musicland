@@ -1,0 +1,39 @@
+# Netlify Configuration for AI Music Studio
+# Site: https://soulmusicfest.netlify.app
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# Next.js specific settings
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirect rules for Next.js
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security and performance
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Environment variable hints (actual values set in Netlify Dashboard)
+# Required environment variables:
+# - NEXTAUTH_URL=https://soulmusicfest.netlify.app
+# - NEXTAUTH_SECRET=your-secret
+# - GOOGLE_CLIENT_ID=your-client-id
+# - GOOGLE_CLIENT_SECRET=your-client-secret
+# - MONGODB_URI=your-mongodb-uri
+# - SUNOAPI_KEY=your-api-key
+# - SUNOAPI_BASE_URL=https://api.sunoapi.com/api/v1
