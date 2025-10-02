@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard';
 import { Music, Sparkles, FolderOpen, Folder } from 'lucide-react';
 import Link from 'next/link';
+import { CreditBalance } from '@/components/subscription/CreditBalance';
+import { SubscriptionDashboard } from '@/components/subscription/SubscriptionDashboard';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -15,6 +17,7 @@ export default function DashboardPage() {
     totalProjects: 0,
     creditsUsed: 0,
   });
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -25,23 +28,38 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        // Initialize user in database (creates if doesn't exist)
+        const initRes = await fetch('/api/user/init', { cache: 'no-store' });
+        const initData = initRes.ok ? await initRes.json() : null;
+
         // Fetch tracks
-        const tracksRes = await fetch('/api/tracks');
+        const tracksRes = await fetch('/api/tracks', { cache: 'no-store' });
         const tracks = tracksRes.ok ? await tracksRes.json() : [];
 
         // Fetch projects
-        const projectsRes = await fetch('/api/projects');
+        const projectsRes = await fetch('/api/projects', { cache: 'no-store' });
         const projects = projectsRes.ok ? await projectsRes.json() : [];
 
         // Fetch credit history
-        const historyRes = await fetch('/api/credits/history');
+        const historyRes = await fetch('/api/credits/history', { cache: 'no-store' });
         const historyData = historyRes.ok ? await historyRes.json() : { analytics: { totalUsage: 0 } };
+
+        // Fetch subscription status (always fresh)
+        const subRes = await fetch('/api/subscription/status', { cache: 'no-store' });
+        const subData = subRes.ok ? await subRes.json() : null;
 
         setStats({
           totalTracks: tracks.length,
           totalProjects: projects.length,
           creditsUsed: historyData.analytics.totalUsage,
         });
+
+        // Use subscription data if available, otherwise use init data
+        if (subData?.user) {
+          setUserData(subData.user);
+        } else if (initData?.user) {
+          setUserData(initData.user);
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
       }
@@ -49,6 +67,11 @@ export default function DashboardPage() {
 
     if (session) {
       fetchStats();
+      
+      // Auto-refresh every 30 seconds to keep data fresh
+      const interval = setInterval(fetchStats, 30000);
+      
+      return () => clearInterval(interval);
     }
   }, [session]);
 
@@ -77,6 +100,116 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-1">Welcome back, {session.user?.name || 'User'}!</p>
         </div>
+
+        {/* Subscription & Credits Section */}
+        {userData && (
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Current Plan Card */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Current Plan</h2>
+                <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-semibold capitalize">
+                  {userData.subscriptionPlan} Plan
+                </span>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-3xl font-bold text-gray-900 capitalize mb-2">
+                  {userData.subscriptionPlan}
+                </p>
+                {userData.subscriptionPlan !== 'free' && userData.subscriptionPeriodEnd && (
+                  <p className="text-gray-600 text-sm">
+                    Renews on {new Date(userData.subscriptionPeriodEnd).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                )}
+              </div>
+
+              {userData.subscriptionPlan === 'free' ? (
+                <a
+                  href="/#pricing"
+                  className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-all text-center"
+                >
+                  Upgrade Plan
+                </a>
+              ) : (
+                <button
+                  onClick={async () => {
+                    if (!confirm('Are you sure you want to cancel your subscription? You will keep access until the end of your billing period.')) {
+                      return;
+                    }
+                    
+                    try {
+                      const res = await fetch('/api/stripe/cancel-subscription', { 
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cancelAtPeriodEnd: true }),
+                      });
+                      
+                      if (!res.ok) {
+                        const errorText = await res.text();
+                        alert(`Error: ${errorText}`);
+                        return;
+                      }
+                      
+                      const data = await res.json();
+                      if (data.success) {
+                        alert('Subscription canceled. You will keep access until the end of your billing period.');
+                        window.location.reload();
+                      }
+                    } catch (error) {
+                      alert(`Failed to cancel: ${error}`);
+                    }
+                  }}
+                  className="w-full bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all"
+                >
+                  Cancel Subscription
+                </button>
+              )}
+            </div>
+
+            {/* Credits Card */}
+            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Credit Balance</h2>
+              </div>
+
+              <div className="mb-4">
+                <p className="text-4xl font-bold text-gray-900 mb-1">
+                  {userData.credits}
+                </p>
+                <p className="text-gray-600 text-sm">
+                  {userData.creditsUsed} credits used lifetime
+                </p>
+              </div>
+
+              {/* Credit Progress Bar */}
+              <div className="mb-4">
+                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Credits Remaining</span>
+                  <span>{Math.round((userData.credits / getMaxCredits(userData.subscriptionPlan)) * 100)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.min((userData.credits / getMaxCredits(userData.subscriptionPlan)) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {userData.credits < 10 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-800 text-sm font-semibold">
+                    ⚠️ Low credit balance! Consider upgrading your plan.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link
@@ -195,4 +328,14 @@ export default function DashboardPage() {
       </div>
     </DashboardLayout>
   );
+}
+
+// Helper function
+function getMaxCredits(plan: string): number {
+  switch (plan) {
+    case 'basic': return 500;
+    case 'creator': return 1500;
+    case 'team': return 5000;
+    default: return 50;
+  }
 }

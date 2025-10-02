@@ -132,12 +132,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Sidebar Footer */}
         {!sidebarCollapsed && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
-            <div className="text-sm text-gray-600 mb-2">Need more credits?</div>
+            <div className="text-sm text-gray-600 mb-2">Check music credits?</div>
             <Link
               href="/credits"
               className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
-              Buy Credits
+              Music Credits
             </Link>
           </div>
         )}

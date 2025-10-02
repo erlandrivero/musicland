@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Star, Zap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 const pricingTiers = [
   {
@@ -10,7 +12,8 @@ const pricingTiers = [
     period: "forever",
     description: "Perfect for trying out AI music generation",
     features: [
-      "5 tracks per month",
+      "50 credits (one-time)",
+      "5 generations per day",
       "Standard quality (MP3)",
       "Basic AI models",
       "Personal use license",
@@ -18,26 +21,47 @@ const pricingTiers = [
     ],
     cta: "Start Free",
     popular: false,
-    gradient: "from-gray-400 to-gray-600"
+    gradient: "from-gray-400 to-gray-600",
+    priceId: null
+  },
+  {
+    name: "Basic",
+    price: "$9.99",
+    period: "per month",
+    description: "Perfect for individual creators",
+    features: [
+      "500 credits monthly",
+      "50 generations per day",
+      "Commercial licensing",
+      "Standard quality",
+      "Advanced editing tools",
+      "Email support"
+    ],
+    cta: "Get Started",
+    popular: false,
+    gradient: "from-blue-400 to-blue-600",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_BASIC || "price_1SDqSCPolIihCLBa61QFAeqm"
   },
   {
     name: "Creator",
-    price: "$9.99",
+    price: "$19.99",
     period: "per month",
     description: "Ideal for content creators and small projects",
     features: [
-      "100 tracks per month",
-      "High quality (WAV, MP3)",
-      "Advanced AI models",
-      "Commercial use license",
-      "Priority support",
+      "1,500 credits monthly",
+      "150 generations per day",
+      "Commercial licensing",
+      "High quality generation",
       "Stem separation",
-      "Custom styles",
-      "Mobile app access"
+      "Advanced editing tools",
+      "Priority queue",
+      "API access",
+      "Priority support"
     ],
-    cta: "Start Free Trial",
+    cta: "Get Started",
     popular: true,
-    gradient: "from-blue-500 to-purple-600"
+    gradient: "from-purple-500 to-pink-600",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_CREATOR || "price_1SDqUWPolIihCLBaHMYCBJM9"
   },
   {
     name: "Team",
@@ -45,24 +69,66 @@ const pricingTiers = [
     period: "per month",
     description: "Perfect for agencies and professional teams",
     features: [
-      "Unlimited tracks",
-      "Studio quality (FLAC, WAV, MP3)",
-      "Premium AI models",
-      "Extended commercial license",
-      "24/7 priority support",
-      "Advanced stem separation",
-      "Custom model training",
-      "Team collaboration tools",
+      "5,000 credits monthly",
+      "500 generations per day",
+      "Commercial licensing",
+      "Premium quality",
+      "Team collaboration",
+      "Stem separation",
+      "Advanced analytics",
+      "Custom models",
       "API access",
-      "White-label options"
+      "Priority support",
+      "Custom integrations"
     ],
-    cta: "Start Free Trial",
+    cta: "Get Started",
     popular: false,
-    gradient: "from-purple-500 to-pink-600"
+    gradient: "from-pink-500 to-red-600",
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TEAM || "price_1SDqVbPolIihCLBa9oyuZEXE"
   }
 ]
 
 export function PricingSection() {
+  const router = useRouter()
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+
+  const handleSelectPlan = async (priceId: string | null, planName: string) => {
+    if (!priceId) {
+      // Free plan - redirect to sign up
+      router.push('/auth/signin')
+      return
+    }
+
+    setLoadingPlan(planName)
+
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ priceId }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        alert(data.error)
+        setLoadingPlan(null)
+        return
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error('Error creating checkout session:', error)
+      alert('Failed to start checkout. Please try again.')
+      setLoadingPlan(null)
+    }
+  }
+
   return (
     <section className="py-24 bg-white" id="pricing">
       <div className="container mx-auto px-4">
@@ -85,11 +151,11 @@ export function PricingSection() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {pricingTiers.map((tier, index) => (
             <motion.div
               key={tier.name}
-              className={`relative ${tier.popular ? 'md:-mt-4' : ''}`}
+              className="relative"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -127,19 +193,23 @@ export function PricingSection() {
                   ))}
                 </div>
 
-                <button className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 ${
-                  tier.popular 
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:scale-105' 
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                }`}>
-                  {tier.cta}
+                <button 
+                  onClick={() => handleSelectPlan(tier.priceId, tier.name)}
+                  disabled={loadingPlan === tier.name}
+                  className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    tier.popular 
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:scale-105' 
+                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  }`}
+                >
+                  {loadingPlan === tier.name ? 'Loading...' : tier.cta}
                 </button>
 
-                {tier.popular && (
+                {tier.priceId && (
                   <div className="mt-4 text-center">
                     <div className="flex items-center justify-center gap-1 text-sm text-gray-500">
                       <Zap className="w-4 h-4 text-yellow-500" />
-                      14-day free trial • No credit card required
+                      Cancel anytime • Secure payment
                     </div>
                   </div>
                 )}

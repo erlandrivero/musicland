@@ -1,12 +1,24 @@
 import { MongoClient, Db } from 'mongodb';
 
-// Hardcoded MongoDB URI - environment variables not loading correctly
-const MONGODB_URI = "mongodb+srv://admin:XyVm0f50Ju2ESPGt@cluster0.yzlzf6c.mongodb.net/ship-fast-code?retryWrites=true&w=majority&appName=Cluster0";
+if (!process.env.MONGODB_URI) {
+  throw new Error('Please add your MongoDB URI to .env.local');
+}
 
-const uri = MONGODB_URI;
-const options = {};
+const uri = process.env.MONGODB_URI;
 
-console.log('[MongoDB] Connecting to MongoDB Atlas...');
+// MongoDB connection options with pooling and timeouts
+const options = {
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  minPoolSize: 5, // Minimum number of connections
+  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
+  retryWrites: true,
+  retryReads: true,
+  w: 'majority' as const,
+};
+
+console.log('[MongoDB] Initializing MongoDB connection...');
 
 let clientPromise: Promise<MongoClient>;
 let client: MongoClient;
@@ -20,16 +32,29 @@ if (process.env.NODE_ENV === 'development') {
 
   if (!globalWithMongo._mongoClientPromise) {
     client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect().catch((error: Error) => {
-      console.log('[MongoDB] Error connecting to MongoDB Atlas:', error);
-      process.exit(1);
-    });
+    globalWithMongo._mongoClientPromise = client.connect()
+      .then((client) => {
+        console.log('[MongoDB] ✅ Connected to MongoDB Atlas (Development)');
+        return client;
+      })
+      .catch((error: Error) => {
+        console.error('[MongoDB] ❌ Error connecting to MongoDB Atlas:', error);
+        throw error;
+      });
   }
   clientPromise = globalWithMongo._mongoClientPromise!;
 } else {
   // In production mode, it's best to not use a global variable.
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  clientPromise = client.connect()
+    .then((client) => {
+      console.log('[MongoDB] ✅ Connected to MongoDB Atlas (Production)');
+      return client;
+    })
+    .catch((error: Error) => {
+      console.error('[MongoDB] ❌ Error connecting to MongoDB Atlas:', error);
+      throw error;
+    });
 }
 
 // Export a module-scoped MongoClient promise. By doing this in a
@@ -48,4 +73,7 @@ export const COLLECTIONS = {
   TRACKS: 'tracks',
   PROJECTS: 'projects',
   CREDIT_HISTORY: 'credit_history',
+  SUBSCRIPTIONS: 'subscriptions',
+  CREDIT_TRANSACTIONS: 'credit_transactions',
+  GENERATIONS: 'generations',
 } as const;
