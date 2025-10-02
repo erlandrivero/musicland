@@ -34,6 +34,7 @@ export function GenerationStatus({
   const [estimatedTime, setEstimatedTime] = useState(60); // seconds
   const [elapsedTime, setElapsedTime] = useState(0);
   const [retryCount, setRetryCount] = useState(0);
+  const [hasCalledOnComplete, setHasCalledOnComplete] = useState(false);
 
   // Poll for status updates
   useEffect(() => {
@@ -57,7 +58,11 @@ export function GenerationStatus({
 
         if (newStatus === 'completed' || newStatus === 'succeeded') {
           clearInterval(pollInterval);
-          onComplete?.(data.audioUrl || data.audio_url, data);
+          // Only call onComplete once
+          if (!hasCalledOnComplete) {
+            setHasCalledOnComplete(true);
+            onComplete?.(data.audioUrl || data.audio_url, data);
+          }
           setStatus('completed');
           onStatusChange?.('completed');
         } else if (newStatus === 'failed') {
@@ -83,7 +88,7 @@ export function GenerationStatus({
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [generationId, status, retryCount, onStatusChange, onComplete, onError]);
+  }, [generationId, status, retryCount, hasCalledOnComplete, onStatusChange, onComplete, onError]);
 
   // Update stage based on elapsed time
   useEffect(() => {

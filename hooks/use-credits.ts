@@ -55,7 +55,13 @@ export function useCredits() {
   } = useQuery<CreditsData>({
     queryKey: ['credits'],
     queryFn: async () => {
-      const response = await fetch('/api/credits');
+      // Add cache buster to force fresh data
+      const response = await fetch(`/api/credits?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -66,6 +72,7 @@ export function useCredits() {
     },
     enabled: isAuthenticated,
     staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache at all
     refetchInterval: 10 * 1000, // Refetch every 10 seconds
     refetchOnWindowFocus: true,
     refetchOnMount: true,

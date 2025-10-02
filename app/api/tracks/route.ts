@@ -57,8 +57,23 @@ export async function POST(request: NextRequest) {
     }
 
     const db = await getDatabase();
+    const trackId = id || crypto.randomUUID();
+    
+    // Check if track already exists to prevent duplicates
+    const existingTrack = await db
+      .collection(COLLECTIONS.TRACKS)
+      .findOne({ id: trackId, userId: session.user.id });
+    
+    if (existingTrack) {
+      console.log('[API] Track already exists, skipping duplicate:', trackId);
+      return NextResponse.json(
+        { success: true, track: existingTrack, id: existingTrack._id, duplicate: true },
+        { status: 200 }
+      );
+    }
+    
     const track = {
-      id: id || crypto.randomUUID(),
+      id: trackId,
       userId: session.user.id,
       userEmail: session.user.email,
       title: title || 'Untitled Track',
