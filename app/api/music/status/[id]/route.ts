@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sunoAPI, isSunoAPIError } from '@/lib/sunoapi';
-import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check authentication
@@ -19,42 +18,14 @@ export async function GET(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
 
-    // Verify track belongs to user
-    const track = await db.track.findUnique({
-      where: { id },
-      select: { userId: true },
-    });
+    console.log('[API] Fetching status for task ID:', id);
 
-    if (!track) {
-      return NextResponse.json(
-        { error: 'NOT_FOUND', message: 'Track not found' },
-        { status: 404 }
-      );
-    }
-
-    if (track.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'FORBIDDEN', message: 'You do not have access to this track' },
-        { status: 403 }
-      );
-    }
-
-    // Fetch real status from SunoAPI
+    // Fetch status directly from SunoAPI (no database check)
     const status = await sunoAPI.getGenerationStatus(id);
 
-    // Update track in database
-    await db.track.update({
-      where: { id },
-      data: {
-        status: status.status,
-        audioUrl: status.audio_url,
-        videoUrl: status.video_url,
-        title: status.title || undefined,
-        duration: status.duration || undefined,
-      },
-    });
+    console.log('[API] Status response:', JSON.stringify(status, null, 2));
 
     return NextResponse.json({
       id: status.id,
@@ -68,6 +39,11 @@ export async function GET(
 
   } catch (error: any) {
     console.error('[API] Status fetch error:', error);
+    console.error('[API] Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
 
     if (isSunoAPIError(error)) {
       return NextResponse.json(

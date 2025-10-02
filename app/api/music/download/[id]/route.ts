@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
+import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -20,16 +20,11 @@ export async function GET(
 
     const { id } = params;
 
-    // Fetch track from database
-    const track = await db.track.findUnique({
-      where: { id },
-      select: {
-        userId: true,
-        audioUrl: true,
-        videoUrl: true,
-        title: true,
-        status: true,
-      },
+    // Fetch track from MongoDB
+    const db = await getDatabase();
+    const track = await db.collection(COLLECTIONS.TRACKS).findOne({
+      id,
+      userEmail: session.user.email,
     });
 
     if (!track) {
@@ -39,7 +34,7 @@ export async function GET(
       );
     }
 
-    if (track.userId !== session.user.id) {
+    if (track.userEmail !== session.user.email) {
       return NextResponse.json(
         { error: 'FORBIDDEN', message: 'You do not have access to this track' },
         { status: 403 }

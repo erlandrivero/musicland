@@ -3,6 +3,7 @@
 import { useCredits } from '@/hooks/use-credits';
 import { Coins, TrendingUp, RefreshCw, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 interface CreditsDisplayProps {
   className?: string;
@@ -18,13 +19,30 @@ export function CreditsDisplay({
   const {
     credits,
     totalCredits,
-    creditsUsed,
     percentageUsed,
     isLoading,
     isError,
     isLowCredits,
     refreshCredits,
   } = useCredits();
+
+  const [actualCreditsUsed, setActualCreditsUsed] = useState(0);
+
+  useEffect(() => {
+    const fetchActualUsage = async () => {
+      try {
+        const response = await fetch('/api/credits/history');
+        if (response.ok) {
+          const data = await response.json();
+          setActualCreditsUsed(data.analytics.totalUsage);
+        }
+      } catch (error) {
+        console.error('Failed to fetch credit usage:', error);
+      }
+    };
+
+    fetchActualUsage();
+  }, [credits]); // Refetch when credits change
 
   if (isLoading) {
     return (
@@ -144,7 +162,7 @@ export function CreditsDisplay({
             <p className="text-xs text-gray-500 mb-1">Credits Used</p>
             <div className="flex items-center gap-1">
               <p className="text-lg font-semibold text-gray-900">
-                {creditsUsed.toLocaleString()}
+                {actualCreditsUsed.toLocaleString()}
               </p>
               <TrendingUp size={16} className="text-gray-400" />
             </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
+import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -20,30 +20,19 @@ export async function DELETE(
 
     const { id } = params;
 
-    // Verify track belongs to user
-    const track = await db.track.findUnique({
-      where: { id },
-      select: { userId: true },
+    // Delete track from MongoDB
+    const db = await getDatabase();
+    const result = await db.collection(COLLECTIONS.TRACKS).deleteOne({
+      id,
+      userEmail: session.user.email,
     });
 
-    if (!track) {
+    if (result.deletedCount === 0) {
       return NextResponse.json(
-        { error: 'NOT_FOUND', message: 'Track not found' },
+        { error: 'NOT_FOUND', message: 'Track not found or you do not have access' },
         { status: 404 }
       );
     }
-
-    if (track.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'FORBIDDEN', message: 'You do not have access to this track' },
-        { status: 403 }
-      );
-    }
-
-    // Delete the track
-    await db.track.delete({
-      where: { id },
-    });
 
     return NextResponse.json(
       { message: 'Track deleted successfully' },

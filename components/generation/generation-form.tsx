@@ -9,7 +9,7 @@ import { CreditCostPreview } from '@/components/credits';
 const GENRES = [
   'Pop', 'Rock', 'Hip-Hop', 'Electronic', 'Classical', 
   'Jazz', 'Country', 'R&B', 'Folk', 'Reggae', 'Blues', 
-  'Metal', 'Indie', 'Soul', 'Funk', 'Disco'
+  'Metal', 'Indie', 'Soul', 'Funk', 'Disco', 'Gospel'
 ];
 
 // Model versions

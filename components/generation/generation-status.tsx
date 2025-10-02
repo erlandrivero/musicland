@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-export type GenerationStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type GenerationStatus = 'pending' | 'processing' | 'completed' | 'succeeded' | 'failed';
 
 interface GenerationStatusProps {
   generationId: string;
@@ -55,9 +55,11 @@ export function GenerationStatus({
         setStatus(newStatus);
         onStatusChange?.(newStatus);
 
-        if (newStatus === 'completed') {
+        if (newStatus === 'completed' || newStatus === 'succeeded') {
           clearInterval(pollInterval);
-          onComplete?.(data.audio_url, data);
+          onComplete?.(data.audioUrl || data.audio_url, data);
+          setStatus('completed');
+          onStatusChange?.('completed');
         } else if (newStatus === 'failed') {
           clearInterval(pollInterval);
           const errorMsg = data.error || 'Generation failed';

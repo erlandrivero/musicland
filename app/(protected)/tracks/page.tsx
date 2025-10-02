@@ -3,12 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { CreditsBadge } from '@/components/credits';
-import { UserMenu } from '@/components/auth/user-menu';
+import { DashboardLayout } from '@/components/dashboard';
 import { TrackList, ShareModal, type Track } from '@/components/tracks';
 import { ProjectManager, type Project } from '@/components/projects';
-import { ArrowLeft, Music, Folder } from 'lucide-react';
-import Link from 'next/link';
+import { Music, Folder } from 'lucide-react';
 
 type ViewMode = 'tracks' | 'projects';
 
@@ -232,35 +230,15 @@ export default function TracksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} />
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">My Music</h1>
-                <p className="text-sm text-gray-600">
-                  {viewMode === 'tracks' ? 'All your generated tracks' : 'Organize into projects'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <CreditsBadge size="lg" showRefresh />
-              <UserMenu />
-            </div>
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Music</h1>
+          <p className="text-gray-600 mt-1">
+            {viewMode === 'tracks' ? 'All your generated tracks' : 'Organize into projects'}
+          </p>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* View Toggle */}
         <div className="flex items-center gap-2 mb-6 bg-white rounded-lg p-1 w-fit border border-gray-200">
           <button
@@ -306,21 +284,20 @@ export default function TracksPage() {
             onSelectProject={handleSelectProject}
           />
         )}
-      </main>
-
-      {/* Share Modal */}
-      {selectedTrack && (
-        <ShareModal
-          isOpen={shareModalOpen}
-          onClose={() => {
-            setShareModalOpen(false);
-            setSelectedTrack(null);
-          }}
-          trackId={selectedTrack.id}
-          trackTitle={selectedTrack.title}
-          trackUrl={`${window.location.origin}/track/${selectedTrack.id}`}
-        />
-      )}
-    </div>
+        {/* Share Modal */}
+        {selectedTrack && (
+          <ShareModal
+            isOpen={shareModalOpen}
+            onClose={() => {
+              setShareModalOpen(false);
+              setSelectedTrack(null);
+            }}
+            trackId={selectedTrack.id}
+            trackTitle={selectedTrack.title}
+            trackUrl={`${window.location.origin}/track/${selectedTrack.id}`}
+          />
+        )}
+      </div>
+    </DashboardLayout>
   );
 }

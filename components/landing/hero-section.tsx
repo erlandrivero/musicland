@@ -10,6 +10,13 @@ export function HeroSection() {
   const { data: session } = useSession()
   const [showSignInModal, setShowSignInModal] = useState(false)
 
+  const handleWatchDemo = () => {
+    const demoSection = document.getElementById('demo');
+    if (demoSection) {
+      demoSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const handleStartCreating = () => {
     if (session) {
       window.location.href = '/dashboard'
@@ -82,7 +89,7 @@ export function HeroSection() {
               <span>{session ? 'Go to Dashboard' : 'Start Creating Music'}</span>
               <Sparkles className="w-4 h-4 ml-2 group-hover:animate-pulse" />
             </button>
-            <button className="btn-outline group">
+            <button onClick={handleWatchDemo} className="btn-outline group">
               <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
               <span>Watch Demo</span>
             </button>

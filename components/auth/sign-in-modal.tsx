@@ -40,7 +40,7 @@ export function SignInModal({ isOpen, onClose, callbackUrl }: SignInModalProps) 
       setIsLoading('email')
       setError(null)
       
-      const result = await signIn('email', {
+      const result = await signIn('resend', {
         email,
         callbackUrl: callbackUrl || '/dashboard',
         redirect: false

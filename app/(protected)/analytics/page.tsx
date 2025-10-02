@@ -30,32 +30,40 @@ export default function AnalyticsPage() {
         const tracksRes = await fetch('/api/tracks');
         const tracks = tracksRes.ok ? await tracksRes.json() : [];
 
-        // Fetch credits
+        // Fetch credits and usage history
         const creditsRes = await fetch('/api/credits');
-        const credits = creditsRes.ok ? await creditsRes.json() : { credits: 0, totalCredits: 10 };
+        const credits = creditsRes.ok ? await creditsRes.json() : { credits: 0 };
+        
+        const historyRes = await fetch('/api/credits/history');
+        const historyData = historyRes.ok ? await historyRes.json() : { 
+          analytics: { totalUsage: 0 },
+          history: []
+        };
 
-        // Calculate this month and last month
+        // Calculate this month and last month from credit history
         const now = new Date();
         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
         const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-        const tracksThisMonth = tracks.filter((t: any) => 
-          new Date(t.createdAt) >= thisMonthStart
+        const tracksThisMonth = historyData.history.filter((h: any) => 
+          h.type === 'generation' && new Date(h.createdAt) >= thisMonthStart
         ).length;
 
-        const tracksLastMonth = tracks.filter((t: any) => {
-          const date = new Date(t.createdAt);
+        const tracksLastMonth = historyData.history.filter((h: any) => {
+          if (h.type !== 'generation') return false;
+          const date = new Date(h.createdAt);
           return date >= lastMonthStart && date <= lastMonthEnd;
         }).length;
 
-        // Calculate popular genres
+        // Calculate popular genres from credit history metadata
         const genreCounts: Record<string, number> = {};
-        tracks.forEach((track: any) => {
-          if (track.tags) {
-            track.tags.split(',').forEach((tag: string) => {
-              const genre = tag.trim();
-              genreCounts[genre] = (genreCounts[genre] || 0) + 1;
+        historyData.history.forEach((entry: any) => {
+          if (entry.type === 'generation' && entry.metadata?.genre) {
+            const genres = entry.metadata.genre.split(',');
+            genres.forEach((genre: string) => {
+              const trimmedGenre = genre.trim();
+              genreCounts[trimmedGenre] = (genreCounts[trimmedGenre] || 0) + 1;
             });
           }
         });
@@ -64,25 +72,29 @@ export default function AnalyticsPage() {
           .map(([genre, count]) => ({ genre, count }))
           .sort((a, b) => b.count - a.count);
 
-        // Calculate recent activity (last 7 days)
+        // Calculate recent activity (last 7 days) from credit history
         const recentActivity = [];
         for (let i = 6; i >= 0; i--) {
           const date = new Date();
           date.setDate(date.getDate() - i);
           const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           
-          const tracksOnDate = tracks.filter((t: any) => {
-            const trackDate = new Date(t.createdAt);
-            return trackDate.toDateString() === date.toDateString();
+          const tracksOnDate = historyData.history.filter((h: any) => {
+            if (h.type !== 'generation') return false;
+            const entryDate = new Date(h.createdAt);
+            return entryDate.toDateString() === date.toDateString();
           }).length;
 
           recentActivity.push({ date: dateStr, tracks: tracksOnDate });
         }
+        
+        console.log('[Analytics] Recent activity data:', recentActivity);
+        console.log('[Analytics] Total history entries:', historyData.history.length);
 
         setAnalyticsData({
           totalProjects: projects.length,
           totalTracks: tracks.length,
-          creditsUsed: credits.totalCredits - credits.credits,
+          creditsUsed: historyData.analytics.totalUsage,
           creditsRemaining: credits.credits,
           tracksThisMonth,
           tracksLastMonth,

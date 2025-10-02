@@ -101,9 +101,9 @@ export function FeaturesSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.3 }}
         >
-          <button className="btn-primary">
+          <a href="/auth/signin" className="btn-primary inline-block">
             Start Creating Now
-          </button>
+          </a>
         </motion.div>
       </div>
     </section>

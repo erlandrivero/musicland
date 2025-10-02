@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sunoAPI, isSunoAPIError, GenerationRequest } from '@/lib/sunoapi';
-import { db } from '@/lib/db';
+import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -26,7 +26,10 @@ export async function POST(request: NextRequest) {
       title,
       make_instrumental,
       mv,
+      gender,
       projectId,
+      styleWeight,
+      weirdness,
     } = body;
 
     // Validate required fields
@@ -51,17 +54,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user's credits before generation
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { credits: true },
-    });
-
-    if (!user || user.credits < 10) {
+    // Check user's credits from SunoAPI
+    const creditsData = await sunoAPI.getCredits();
+    
+    if (creditsData.credits < 10) {
       return NextResponse.json(
         { error: 'INSUFFICIENT_CREDITS', message: 'You need at least 10 credits to generate music' },
         { status: 402 }
       );
+    }
+
+    // Add gender to tags if specified
+    let finalTags = tags;
+    if (custom_mode && gender && gender !== 'auto') {
+      const genderText = gender === 'female' ? 'female vocals' : 'male vocals';
+      finalTags = tags ? `${tags}, ${genderText}` : genderText;
     }
 
     // Prepare generation request
@@ -70,68 +77,77 @@ export async function POST(request: NextRequest) {
       mv,
       gpt_description_prompt: custom_mode ? undefined : gpt_description_prompt,
       prompt: custom_mode ? prompt : undefined,
-      tags: custom_mode ? tags : undefined,
+      tags: custom_mode ? finalTags : undefined,
       title: custom_mode ? title : undefined,
       make_instrumental: make_instrumental || false,
+      style_weight: styleWeight !== undefined ? styleWeight : undefined,
+      weirdness_constraint: weirdness !== undefined ? weirdness : undefined,
     };
 
     // Generate music using real SunoAPI
     const generations = await sunoAPI.generateMusic(generationRequest);
+    
+    console.log('[API] Generations received:', generations);
 
-    // Save tracks to database
-    const tracks = await Promise.all(
-      generations.map(async (gen) => {
-        return db.track.create({
-          data: {
-            id: gen.id,
-            title: gen.title || title || 'Untitled',
-            description: custom_mode ? prompt : gpt_description_prompt,
-            audioUrl: gen.audio_url,
-            videoUrl: gen.video_url,
-            genre: tags,
-            duration: gen.duration,
-            status: gen.status,
-            userId: session.user.id!,
-            projectId: projectId || null,
-            prompt: custom_mode ? prompt : gpt_description_prompt,
-            style: tags,
-            isCustom: custom_mode,
-            model: 'suno',
-          },
-        });
-      })
-    );
+    // Ensure generations is an array
+    const generationsArray = Array.isArray(generations) ? generations : [generations];
 
-    // Deduct credits from user (10 credits per generation)
-    await db.user.update({
-      where: { id: session.user.id },
-      data: {
-        credits: {
-          decrement: 10,
-        },
-      },
+    // SunoAPI returns task IDs, not full generation objects
+    // Map the response to our expected format
+    const tracks = generationsArray.map((gen: any) => {
+      console.log('[API] Mapping generation:', gen);
+      console.log('[API] task_id:', gen.task_id, 'id:', gen.id);
+      return {
+        id: gen.task_id || gen.id,
+        title: title || 'Untitled',
+        status: 'processing',
+        audioUrl: null,
+        videoUrl: null,
+        duration: null,
+        created_at: new Date().toISOString(),
+      };
     });
+
+    // Log credit usage to MongoDB
+    try {
+      const db = await getDatabase();
+      await db.collection(COLLECTIONS.CREDIT_HISTORY).insertOne({
+        userId: session.user.id,
+        userEmail: session.user.email,
+        creditsUsed: 10,
+        type: 'generation',
+        description: `Music generation: ${title || 'Untitled'}`,
+        metadata: {
+          modelVersion: mv,
+          customMode: custom_mode,
+          genre: tags,
+          trackIds: tracks.map(t => t.id),
+        },
+        createdAt: new Date(),
+      });
+      console.log('[API] Credit usage logged to MongoDB');
+    } catch (logError) {
+      console.error('[API] Failed to log credit usage:', logError);
+      // Don't fail the request if logging fails
+    }
 
     return NextResponse.json({
       success: true,
-      tracks: tracks.map(track => ({
-        id: track.id,
-        title: track.title,
-        status: track.status,
-        audioUrl: track.audioUrl,
-        videoUrl: track.videoUrl,
-      })),
+      tracks: tracks,
       creditsUsed: 10,
+      message: tracks[0].status === 'processing' ? 'Generation started. Poll /api/music/status/[id] for updates.' : 'Generation complete',
     }, { status: 201 });
 
   } catch (error: any) {
     console.error('[API] Music generation error:', error);
+    console.error('[API] Error stack:', error.stack);
 
     if (isSunoAPIError(error)) {
       return NextResponse.json(
         {
           error: error.error,
           message: error.message,
+          details: error,
         },
         { status: error.statusCode || 500 }
       );
@@ -141,6 +157,8 @@ export async function POST(request: NextRequest) {
       {
         error: 'GENERATION_ERROR',
         message: error.message || 'Failed to generate music',
+        details: error.toString(),
+        stack: error.stack,
       },
       { status: 500 }
     );

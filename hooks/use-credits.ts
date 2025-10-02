@@ -65,9 +65,10 @@ export function useCredits() {
       return response.json();
     },
     enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 10 * 1000, // Refetch every 10 seconds
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
     retry: 3,
   });
 
@@ -128,7 +129,9 @@ export function useCredits() {
 
   // Refresh credits from API
   const refreshCredits = useCallback(async () => {
+    console.log('[Credits] Refreshing credits...');
     await refetch();
+    console.log('[Credits] Credits refreshed');
   }, [refetch]);
 
   return {

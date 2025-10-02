@@ -2,41 +2,86 @@
 
 import { motion } from 'framer-motion'
 import { Play, Pause, Volume2, Download } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 const sampleTracks = [
   {
     id: 1,
-    title: "Upbeat Pop Anthem",
+    title: "Skyline Dreams",
     genre: "Pop",
-    duration: "2:45",
-    description: "Energetic pop track with catchy hooks"
+    duration: "2:17",
+    description: "An energetic and uplifting pop anthem.",
+    audioUrl: "/audio/sample-pop.mp3"
   },
   {
     id: 2,
-    title: "Chill Lo-Fi Beat",
+    title: "Midnight Lo-Fi",
     genre: "Lo-Fi",
-    duration: "3:12",
-    description: "Relaxing background music perfect for focus"
+    duration: "2:27",
+    description: "A relaxing beat for late-night focus.",
+    audioUrl: "/audio/sample-lofi.mp3"
   },
   {
     id: 3,
-    title: "Epic Cinematic Score",
+    title: "Cinematic Victory",
     genre: "Cinematic",
-    duration: "4:20",
-    description: "Dramatic orchestral piece for video content"
+    duration: "2:00",
+    description: "A dramatic and epic orchestral score.",
+    audioUrl: "/audio/sample-cinematic.mp3"
   }
 ]
 
 export function DemoSection() {
   const [playingTrack, setPlayingTrack] = useState<number | null>(null)
+  const [volume, setVolume] = useState(0.8)
+  const audioRef = useRef<HTMLAudioElement>(null!)
 
-  const togglePlay = (trackId: number) => {
-    setPlayingTrack(playingTrack === trackId ? null : trackId)
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value)
+    setVolume(newVolume)
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume
+    }
+  }
+
+  const handleDownload = (audioUrl: string, title: string) => {
+    const link = document.createElement('a')
+    link.href = audioUrl
+    link.download = `${title}.mp3`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume
+    }
+  }, [volume])
+
+  const togglePlay = async (trackId: number) => {
+    if (playingTrack === trackId) {
+      audioRef.current.pause()
+      setPlayingTrack(null)
+      return
+    }
+
+    const track = sampleTracks.find(t => t.id === trackId)
+    if (track) {
+      try {
+        audioRef.current.src = track.audioUrl
+        await audioRef.current.play()
+        setPlayingTrack(trackId)
+      } catch (error) {
+        console.error("Audio playback failed:", error)
+        setPlayingTrack(null)
+      }
+    }
   }
 
   return (
     <section className="py-24 bg-gradient-to-br from-gray-50 to-blue-50" id="demo">
+      <audio ref={audioRef} onEnded={() => setPlayingTrack(null)} />
       <div className="container mx-auto px-4">
         <motion.div 
           className="text-center mb-16"
@@ -67,13 +112,18 @@ export function DemoSection() {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            <div className="aspect-video bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center relative">
-              <button className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors group">
-                <Play className="w-8 h-8 text-white ml-1 group-hover:scale-110 transition-transform" />
-              </button>
-              <div className="absolute bottom-4 left-4 text-white">
-                <div className="text-sm opacity-80">Watch Demo</div>
-                <div className="font-semibold">See AI Music Generation in Action</div>
+            <div className="aspect-video relative">
+              <video 
+                className="w-full h-full object-cover"
+                controls
+                poster="/demo-video-poster.jpg"
+              >
+                <source src="/demo-video.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+              <div className="absolute top-4 left-4 text-white bg-gradient-to-r from-blue-600/80 to-purple-600/80 px-4 py-2 rounded-lg backdrop-blur-sm pointer-events-none">
+                <div className="text-xs font-medium opacity-90">🎵 Watch Demo</div>
+                <div className="font-semibold text-sm">AI Music Generation in Action</div>
               </div>
             </div>
           </div>
@@ -121,6 +171,7 @@ export function DemoSection() {
                 </div>
 
                 <p className="text-sm text-gray-600 mb-4">{track.description}</p>
+                {track.id === 2 && <div className="h-5" />}
 
                 {/* Waveform Placeholder */}
                 <div className="h-12 bg-gray-100 rounded-lg mb-4 flex items-center justify-center">
@@ -143,13 +194,19 @@ export function DemoSection() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-gray-400">
+                  <div className="flex items-center gap-2 text-gray-400 flex-grow">
                     <Volume2 className="w-4 h-4" />
-                    <div className="w-16 h-1 bg-gray-200 rounded-full">
-                      <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
-                    </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="1" 
+                      step="0.05" 
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
                   </div>
-                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                  <button onClick={() => handleDownload(track.audioUrl, track.title)} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
                     <Download className="w-4 h-4" />
                   </button>
                 </div>
@@ -166,12 +223,9 @@ export function DemoSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.6 }}
         >
-          <button className="btn-primary mr-4">
+          <a href="/auth/signin" className="btn-primary inline-block">
             Try It Yourself
-          </button>
-          <button className="btn-outline">
-            View All Samples
-          </button>
+          </a>
         </motion.div>
       </div>
     </section>

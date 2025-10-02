@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { CreditsBadge } from '@/components/credits';
-import { UserMenu } from '@/components/auth/user-menu';
+import { DashboardLayout } from '@/components/dashboard';
 import { GenerationForm, GenerationStatus, TrackResult, type GenerationFormData } from '@/components/generation';
 import { useCredits, useCreditHistory } from '@/hooks/use-credits';
 import { InsufficientCreditsModal } from '@/components/credits';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { Sparkles } from 'lucide-react';
 
 interface GeneratedTrack {
   id: string;
@@ -28,7 +26,7 @@ export default function GeneratePage() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationId, setGenerationId] = useState<string | null>(null);
-  const [generationStatus, setGenerationStatus] = useState<'pending' | 'processing' | 'completed' | 'failed'>('pending');
+  const [generationStatus, setGenerationStatus] = useState<'pending' | 'processing' | 'completed' | 'succeeded' | 'failed'>('pending');
   const [generatedTrack, setGeneratedTrack] = useState<GeneratedTrack | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
@@ -75,8 +73,9 @@ export default function GeneratePage() {
 
       const data = await response.json();
       
-      // Assuming API returns array of tracks, take first one
-      const track = Array.isArray(data) ? data[0] : data;
+      // API returns { success, tracks: [...] }
+      const tracks = data.tracks || (Array.isArray(data) ? data : [data]);
+      const track = tracks[0];
       
       setGenerationId(track.id);
       setGenerationStatus(track.status || 'processing');
@@ -102,15 +101,36 @@ export default function GeneratePage() {
     }
   };
 
-  const handleStatusChange = (status: 'pending' | 'processing' | 'completed' | 'failed') => {
+  const handleStatusChange = (status: 'pending' | 'processing' | 'completed' | 'succeeded' | 'failed') => {
     setGenerationStatus(status);
     
-    if (status === 'completed' || status === 'failed') {
+    if (status === 'completed' || status === 'succeeded' || status === 'failed') {
       setIsGenerating(false);
     }
   };
 
   const handleGenerationComplete = async (audioUrl: string, data: any) => {
+    // Save track to MongoDB automatically
+    try {
+      await fetch('/api/tracks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: data.id || data.clip_id,
+          title: data.title || 'Generated Track',
+          audioUrl: audioUrl,
+          videoUrl: data.video_url,
+          duration: data.duration,
+          tags: data.tags,
+          lyrics: data.lyrics,
+          status: 'completed',
+          createdAt: data.created_at || new Date().toISOString(),
+        }),
+      });
+    } catch (saveError) {
+      console.error('[Generate] Failed to auto-save track:', saveError);
+    }
+
     setGeneratedTrack({
       id: data.id,
       audioUrl: audioUrl,
@@ -178,36 +198,16 @@ export default function GeneratePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft size={20} />
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <Sparkles size={28} className="text-blue-600" />
-                  Generate Music
-                </h1>
-                <p className="text-sm text-gray-600">Create amazing music with AI</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <CreditsBadge size="lg" showRefresh />
-              <UserMenu />
-            </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center gap-3">
+          <Sparkles size={32} className="text-blue-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Generate Music</h1>
+            <p className="text-gray-600 mt-1">Create AI-powered music with advanced controls</p>
           </div>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Generation Form */}
           <div>
@@ -307,14 +307,14 @@ export default function GeneratePage() {
             )}
           </div>
         </div>
-      </main>
 
-      {/* Insufficient Credits Modal */}
-      <InsufficientCreditsModal
-        isOpen={showInsufficientCreditsModal}
-        onClose={() => setShowInsufficientCreditsModal(false)}
-        requiredCredits={10}
-      />
-    </div>
+        {/* Insufficient Credits Modal */}
+        <InsufficientCreditsModal
+          isOpen={showInsufficientCreditsModal}
+          onClose={() => setShowInsufficientCreditsModal(false)}
+          requiredCredits={10}
+        />
+      </div>
+    </DashboardLayout>
   );
 }

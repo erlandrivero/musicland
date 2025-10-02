@@ -1,11 +1,8 @@
 import { NextAuthConfig } from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
 import Google from "next-auth/providers/google"
-import Nodemailer from "next-auth/providers/nodemailer"
-import { db } from "./db"
+import Resend from "next-auth/providers/resend"
 
 export const authConfig = {
-  adapter: PrismaAdapter(db),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -18,16 +15,8 @@ export const authConfig = {
         }
       }
     }),
-    Nodemailer({
-      server: {
-        host: process.env.EMAIL_SERVER_HOST,
-        port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
-        auth: {
-          user: process.env.EMAIL_SERVER_USER,
-          pass: process.env.EMAIL_SERVER_PASSWORD,
-        },
-      },
-      from: process.env.EMAIL_FROM,
+    Resend({
+      from: "onboarding@resend.dev",
     }),
   ],
   pages: {
@@ -40,23 +29,6 @@ export const authConfig = {
     async session({ session, token }) {
       if (token.sub && session.user) {
         session.user.id = token.sub
-        
-        // Fetch user data from database to include credits and subscription
-        const user = await db.user.findUnique({
-          where: { id: token.sub },
-          select: {
-            id: true,
-            credits: true,
-            totalCredits: true,
-            subscription: true,
-          }
-        })
-        
-        if (user) {
-          session.user.credits = user.credits
-          session.user.totalCredits = user.totalCredits
-          session.user.subscription = user.subscription
-        }
       }
       return session
     },
@@ -82,18 +54,5 @@ export const authConfig = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  events: {
-    async createUser({ user }) {
-      // Initialize new user with default credits
-      await db.user.update({
-        where: { id: user.id },
-        data: {
-          credits: 10,
-          totalCredits: 10,
-          subscription: 'free'
-        }
-      })
-    },
-  },
-  debug: process.env.NODE_ENV === "development",
+  debug: true,
 } satisfies NextAuthConfig

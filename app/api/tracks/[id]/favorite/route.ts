@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
+import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -22,19 +22,22 @@ export async function POST(
     const body = await request.json();
     const { isFavorite } = body;
 
-    // Update favorite status
-    const track = await db.track.update({
-      where: { id },
-      data: {
-        isFavorite: isFavorite,
-      },
-      select: {
-        id: true,
-        isFavorite: true,
-      },
-    });
+    // Update favorite status in MongoDB
+    const db = await getDatabase();
+    const result = await db.collection(COLLECTIONS.TRACKS).findOneAndUpdate(
+      { id, userEmail: session.user.email },
+      { $set: { isFavorite } },
+      { returnDocument: 'after' }
+    );
 
-    return NextResponse.json(track, { status: 200 });
+    if (!result || !result.value) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Track not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ id: result.value.id, isFavorite: result.value.isFavorite }, { status: 200 });
   } catch (error: any) {
     console.error('[API] Failed to update favorite status:', error);
     return NextResponse.json(

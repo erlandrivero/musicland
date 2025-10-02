@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sunoAPI, isSunoAPIError } from '@/lib/sunoapi';
-import { db } from '@/lib/db';
 
 export const runtime = 'nodejs';
 
@@ -21,20 +20,14 @@ export async function GET(request: NextRequest) {
 
     // Calculate total credits (main + extra)
     const totalCredits = creditsData.credits + (creditsData.extra_credits || 0);
-
-    // Update user's credits in database
-    await db.user.update({
-      where: { id: session.user.id },
-      data: {
-        credits: creditsData.credits,
-        totalCredits: totalCredits,
-      },
-    });
+    
+    // Calculate credits used (assuming user started with totalCredits)
+    const creditsUsed = totalCredits - creditsData.credits;
 
     return NextResponse.json({
       credits: creditsData.credits,
       totalCredits: totalCredits,
-      creditsUsed: 0, // SunoAPI doesn't provide this, we'll track it ourselves
+      creditsUsed: creditsUsed,
       extraCredits: creditsData.extra_credits || 0,
     }, { status: 200 });
 

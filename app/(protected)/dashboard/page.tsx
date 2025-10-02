@@ -2,15 +2,19 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { CreditsBadge } from '@/components/credits';
-import { UserMenu } from '@/components/auth/user-menu';
-import { Music, Sparkles, FolderOpen, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { DashboardLayout } from '@/components/dashboard';
+import { Music, Sparkles, FolderOpen, Folder } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [stats, setStats] = useState({
+    totalTracks: 0,
+    totalProjects: 0,
+    creditsUsed: 0,
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -18,14 +22,46 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch tracks
+        const tracksRes = await fetch('/api/tracks');
+        const tracks = tracksRes.ok ? await tracksRes.json() : [];
+
+        // Fetch projects
+        const projectsRes = await fetch('/api/projects');
+        const projects = projectsRes.ok ? await projectsRes.json() : [];
+
+        // Fetch credit history
+        const historyRes = await fetch('/api/credits/history');
+        const historyData = historyRes.ok ? await historyRes.json() : { analytics: { totalUsage: 0 } };
+
+        setStats({
+          totalTracks: tracks.length,
+          totalProjects: projects.length,
+          creditsUsed: historyData.analytics.totalUsage,
+        });
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    };
+
+    if (session) {
+      fetchStats();
+    }
+  }, [session]);
+
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -34,25 +70,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-sm text-gray-600">Welcome back, {session.user?.name || 'User'}!</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <CreditsBadge size="lg" showRefresh />
-              <UserMenu />
-            </div>
-          </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Welcome back, {session.user?.name || 'User'}!</p>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link
@@ -101,16 +125,16 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/profile"
+            href="/projects"
             className="p-6 bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow cursor-pointer group"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-amber-100 rounded-lg group-hover:bg-amber-200 transition-colors">
-                <User size={24} className="text-amber-600" />
+                <Folder size={24} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Profile</h3>
-                <p className="text-sm text-gray-600">Account settings</p>
+                <h3 className="font-semibold text-gray-900">Projects</h3>
+                <p className="text-sm text-gray-600">Organize tracks</p>
               </div>
             </div>
           </Link>
@@ -148,23 +172,27 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-600 mb-2">Total Tracks</h3>
-            <p className="text-3xl font-bold text-gray-900">0</p>
-            <p className="text-sm text-gray-500 mt-2">Start generating to see stats</p>
+            <p className="text-3xl font-bold text-gray-900">{stats.totalTracks}</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {stats.totalTracks === 0 ? 'Start generating to see stats' : 'Generated tracks'}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-600 mb-2">Projects</h3>
-            <p className="text-3xl font-bold text-gray-900">0</p>
-            <p className="text-sm text-gray-500 mt-2">Create your first project</p>
+            <p className="text-3xl font-bold text-gray-900">{stats.totalProjects}</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {stats.totalProjects === 0 ? 'Create your first project' : 'Active projects'}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-sm font-medium text-gray-600 mb-2">Credits Used</h3>
-            <p className="text-3xl font-bold text-gray-900">0</p>
+            <p className="text-3xl font-bold text-gray-900">{stats.creditsUsed}</p>
             <p className="text-sm text-gray-500 mt-2">Track your usage</p>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }

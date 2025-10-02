@@ -48,13 +48,13 @@ export default function ProjectsPage() {
           }));
         }
 
-        // Get credits used from user
-        const creditsRes = await fetch('/api/credits');
-        if (creditsRes.ok) {
-          const creditsData = await creditsRes.json();
+        // Get credits used from MongoDB history
+        const historyRes = await fetch('/api/credits/history');
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
           setStats(prev => ({
             ...prev,
-            creditsUsed: creditsData.totalCredits - creditsData.credits,
+            creditsUsed: historyData.analytics.totalUsage,
           }));
         }
       } catch (error) {

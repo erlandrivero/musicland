@@ -427,6 +427,7 @@ export function TrackList({
               title={filteredTracks.find(t => t.id === currentlyPlaying)?.title || ''}
               duration={filteredTracks.find(t => t.id === currentlyPlaying)?.duration}
               isFavorite={filteredTracks.find(t => t.id === currentlyPlaying)?.isFavorite}
+              onClose={() => setCurrentlyPlaying(null)}
               onNext={() => {
                 const currentIndex = filteredTracks.findIndex(t => t.id === currentlyPlaying);
                 if (currentIndex < filteredTracks.length - 1) {

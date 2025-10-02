@@ -1,17 +1,44 @@
 'use client';
 
-import { useCreditHistory } from '@/hooks/use-credits';
 import { TrendingUp, Calendar, BarChart3, PieChart } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+interface Analytics {
+  dailyUsage: number;
+  weeklyUsage: number;
+  totalUsage: number;
+  usageByType: Record<string, number>;
+  recordCount: number;
+}
+
 export function UsageAnalytics() {
-  const { getStats } = useCreditHistory();
-  const [stats, setStats] = useState(getStats());
+  const [stats, setStats] = useState<Analytics>({
+    dailyUsage: 0,
+    weeklyUsage: 0,
+    totalUsage: 0,
+    usageByType: {},
+    recordCount: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Refresh stats when component mounts
-    setStats(getStats());
-  }, [getStats]);
+    // Fetch analytics from MongoDB
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch('/api/credits/history');
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data.analytics);
+        }
+      } catch (error) {
+        console.error('Failed to fetch analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
 
   const typeLabels: Record<string, string> = {
     generation: 'Music Generation',
@@ -80,7 +107,7 @@ export function UsageAnalytics() {
       </div>
 
       {/* Usage by Type */}
-      {usageByTypeArray.length > 0 && (
+      {stats.totalUsage > 0 && usageByTypeArray.length > 0 && (
         <div className="p-6 bg-white border border-gray-200 rounded-lg">
           <div className="flex items-center gap-3 mb-6">
             <PieChart size={24} className="text-gray-700" />
@@ -122,7 +149,7 @@ export function UsageAnalytics() {
       )}
 
       {/* Empty State */}
-      {usageByTypeArray.length === 0 && (
+      {stats.totalUsage === 0 && !loading && (
         <div className="p-12 bg-gray-50 border border-gray-200 rounded-lg text-center">
           <PieChart size={48} className="mx-auto text-gray-300 mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">

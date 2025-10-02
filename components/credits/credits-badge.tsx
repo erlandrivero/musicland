@@ -61,11 +61,15 @@ export function CreditsBadge({
       <span className="font-semibold">
         {isLoading ? '...' : credits.toLocaleString()}
       </span>
-      {showRefresh && !isLoading && (
+      {showRefresh && (
         <button
           onClick={refreshCredits}
-          className="ml-1 hover:opacity-70 transition-opacity"
+          className={cn(
+            "ml-1 hover:opacity-70 transition-all",
+            isLoading && "animate-spin"
+          )}
           aria-label="Refresh credits"
+          disabled={isLoading}
         >
           <RefreshCw size={iconSizes[size] - 2} />
         </button>

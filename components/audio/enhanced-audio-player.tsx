@@ -14,7 +14,8 @@ import {
   Download,
   Share2,
   Heart,
-  MoreVertical
+  MoreVertical,
+  X
 } from 'lucide-react';
 
 interface EnhancedAudioPlayerProps {
@@ -28,6 +29,7 @@ interface EnhancedAudioPlayerProps {
   onFavorite?: (trackId: string) => void;
   onShare?: (trackId: string) => void;
   onDownload?: (trackId: string, format: string) => void;
+  onClose?: () => void;
   isFavorite?: boolean;
 }
 
@@ -42,6 +44,7 @@ export function EnhancedAudioPlayer({
   onFavorite,
   onShare,
   onDownload,
+  onClose,
   isFavorite = false,
 }: EnhancedAudioPlayerProps) {
   const waveformRef = useRef<HTMLDivElement>(null);
@@ -112,7 +115,13 @@ export function EnhancedAudioPlayer({
     wavesurferRef.current = wavesurfer;
 
     return () => {
-      wavesurfer.destroy();
+      try {
+        if (wavesurfer) {
+          wavesurfer.destroy();
+        }
+      } catch (error) {
+        // Ignore errors during cleanup
+      }
     };
   }, [audioUrl, isLooping, onNext]);
 
@@ -196,6 +205,15 @@ export function EnhancedAudioPlayer({
             >
               <Share2 size={20} />
             </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
+                title="Close Player"
+              >
+                <X size={20} />
+              </button>
+            )}
           </div>
         </div>
       </div>

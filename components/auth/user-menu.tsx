@@ -4,19 +4,14 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSession, signOut } from 'next-auth/react'
 import { 
-  User, 
-  Settings, 
   LogOut, 
   ChevronDown, 
-  CreditCard,
-  Music,
-  HelpCircle
 } from 'lucide-react'
-import Image from 'next/image'
 
 export function UserMenu() {
   const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
+  const [imageError, setImageError] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   // Close menu when clicking outside
@@ -37,38 +32,7 @@ export function UserMenu() {
     await signOut({ callbackUrl: '/' })
   }
 
-  const menuItems = [
-    {
-      icon: User,
-      label: 'Profile',
-      href: '/profile',
-      description: 'Manage your account'
-    },
-    {
-      icon: Music,
-      label: 'My Projects',
-      href: '/projects',
-      description: 'View your music projects'
-    },
-    {
-      icon: CreditCard,
-      label: 'Credits & Billing',
-      href: '/credits',
-      description: 'Manage your subscription'
-    },
-    {
-      icon: Settings,
-      label: 'Settings',
-      href: '/settings',
-      description: 'App preferences'
-    },
-    {
-      icon: HelpCircle,
-      label: 'Help & Support',
-      href: '/help',
-      description: 'Get help and tutorials'
-    }
-  ]
+  // Removed menu items - keeping only user info and sign out
 
   return (
     <div className="relative" ref={menuRef}>
@@ -81,13 +45,13 @@ export function UserMenu() {
       >
         {/* Avatar */}
         <div className="relative">
-          {session.user.image ? (
-            <Image
+          {session.user.image && !imageError ? (
+            <img
               src={session.user.image}
               alt={session.user.name || 'User'}
-              width={32}
-              height={32}
-              className="rounded-full"
+              className="w-8 h-8 rounded-full object-cover"
+              onError={() => setImageError(true)}
+              referrerPolicy="no-referrer"
             />
           ) : (
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -132,13 +96,13 @@ export function UserMenu() {
             {/* User Info Header */}
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                {session.user.image ? (
-                  <Image
+                {session.user.image && !imageError ? (
+                  <img
                     src={session.user.image}
                     alt={session.user.name || 'User'}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={() => setImageError(true)}
+                    referrerPolicy="no-referrer"
                   />
                 ) : (
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -159,24 +123,6 @@ export function UserMenu() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Menu Items */}
-            <div className="py-1">
-              {menuItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <item.icon className="w-4 h-4 text-gray-500 group-hover:text-gray-700" />
-                  <div className="flex-1">
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-xs text-gray-500">{item.description}</div>
-                  </div>
-                </a>
-              ))}
             </div>
 
             {/* Sign Out */}

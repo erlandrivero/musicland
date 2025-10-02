@@ -167,9 +167,9 @@ export function TestimonialsSection() {
               Start creating professional music with AI today
             </div>
           </div>
-          <button className="btn-primary">
+          <a href="/auth/signin" className="btn-primary inline-block">
             Start Creating Music
-          </button>
+          </a>
         </motion.div>
       </div>
     </section>

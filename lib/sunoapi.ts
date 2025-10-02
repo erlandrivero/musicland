@@ -9,15 +9,18 @@ export interface GenerationRequest {
   title?: string;
   make_instrumental?: boolean;
   mv: string; // Model version: chirp-v3-5, chirp-v4, chirp-v5, etc.
+  style_weight?: number; // 0.0-1.0: How closely to follow the style
+  weirdness_constraint?: number; // 0.0-1.0: Creativity level
 }
 
 export interface GenerationResponse {
   id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'running' | 'processing' | 'succeeded' | 'completed' | 'failed';
   audio_url?: string;
   video_url?: string;
   title?: string;
   tags?: string;
+  lyrics?: string;
   duration?: number;
   created_at?: string;
   error?: string;
@@ -209,6 +212,22 @@ class SunoAPIClient {
       }
 
       const response = await this.client.post<GenerationResponse[]>('/suno/create', request);
+      console.log('[SunoAPI] Generate music response:', JSON.stringify(response.data, null, 2));
+      
+      // Handle different response formats from SunoAPI
+      if (response.data && typeof response.data === 'object') {
+        // If response has a 'data' property, use that
+        if ('data' in response.data && Array.isArray((response.data as any).data)) {
+          return (response.data as any).data;
+        }
+        // If response is already an array, return it
+        if (Array.isArray(response.data)) {
+          return response.data;
+        }
+        // If response is a single object, wrap it in an array
+        return [response.data as GenerationResponse];
+      }
+      
       return response.data;
     } catch (error) {
       console.error('[SunoAPI] Failed to generate music:', error);
@@ -219,14 +238,46 @@ class SunoAPIClient {
   // Check generation status
   async getGenerationStatus(id: string): Promise<GenerationResponse> {
     try {
-      const response = await this.client.get<GenerationResponse>(`/suno/status/${id}`);
-      return response.data;
+      const response = await this.client.get<{code: number, data: any[], message: string}>(`/suno/task/${id}`);
+      
+      console.log('[SunoAPI] Status response:', JSON.stringify(response.data, null, 2));
+      
+      // HTTP 202 means still processing - return pending status
+      if (response.status === 202) {
+        return {
+          id: id,
+          status: 'processing',
+          title: 'Generating...',
+        };
+      }
+      
+      // SunoAPI returns { code, data: [...], message }
+      if (response.data.code === 200 && response.data.data && response.data.data.length > 0) {
+        const clip = response.data.data[0];
+        return {
+          id: clip.clip_id,
+          title: clip.title,
+          status: clip.state, // pending, running, succeeded
+          audio_url: clip.audio_url,
+          video_url: clip.video_url,
+          duration: clip.duration,
+          created_at: clip.created_at,
+          lyrics: clip.lyrics,
+          tags: clip.tags,
+        };
+      }
+      
+      // If no data but successful response, still processing
+      return {
+        id: id,
+        status: 'processing',
+        title: 'Generating...',
+      };
     } catch (error) {
       console.error('[SunoAPI] Failed to fetch generation status:', error);
       throw error;
     }
   }
-
   // Get multiple generation statuses
   async getGenerationStatuses(ids: string[]): Promise<GenerationResponse[]> {
     try {

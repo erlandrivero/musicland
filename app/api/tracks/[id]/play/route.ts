@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
+import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -20,21 +20,22 @@ export async function POST(
 
     const { id } = params;
 
-    // Update play count
-    const track = await db.track.update({
-      where: { id },
-      data: {
-        playCount: {
-          increment: 1,
-        },
-      },
-      select: {
-        id: true,
-        playCount: true,
-      },
-    });
+    // Update play count in MongoDB
+    const db = await getDatabase();
+    const result = await db.collection(COLLECTIONS.TRACKS).findOneAndUpdate(
+      { id },
+      { $inc: { playCount: 1 } },
+      { returnDocument: 'after' }
+    );
 
-    return NextResponse.json(track, { status: 200 });
+    if (!result || !result.value) {
+      return NextResponse.json(
+        { error: 'NOT_FOUND', message: 'Track not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ id: result.value.id, playCount: result.value.playCount }, { status: 200 });
   } catch (error: any) {
     console.error('[API] Failed to update play count:', error);
     return NextResponse.json(

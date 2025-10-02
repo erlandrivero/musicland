@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { db } from '@/lib/db';
+import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -15,28 +15,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const projects = await db.project.findMany({
-      where: {
-        userId: session.user.id,
-      },
-      include: {
-        _count: {
-          select: { tracks: true },
-        },
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    const db = await getDatabase();
+    const projects = await db
+      .collection(COLLECTIONS.PROJECTS)
+      .find({ userId: session.user.id })
+      .sort({ updatedAt: -1 })
+      .toArray();
 
     // Transform to match Project interface
     const transformedProjects = projects.map(project => ({
-      id: project.id,
+      id: project._id.toString(),
       name: project.name,
-      description: project.description,
-      trackCount: project._count.tracks,
-      createdAt: project.createdAt.toISOString(),
-      updatedAt: project.updatedAt.toISOString(),
+      description: project.description || null,
+      trackCount: project.trackIds?.length || 0,
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
     }));
 
     return NextResponse.json(transformedProjects, { status: 200 });
@@ -52,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/projects - Create a new project
+// POST /api/projects - Create a new project or add track to project
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -64,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description } = body;
+    const { name, description, trackId } = body;
 
     if (!name || name.trim().length === 0) {
       return NextResponse.json(
@@ -73,27 +66,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const project = await db.project.create({
-      data: {
-        name: name.trim(),
-        description: description?.trim() || null,
-        userId: session.user.id,
-      },
-      include: {
-        _count: {
-          select: { tracks: true },
-        },
-      },
-    });
+    const db = await getDatabase();
+    const now = new Date();
 
-    // Transform to match Project interface
+    // Check if project already exists
+    const existingProject = await db
+      .collection(COLLECTIONS.PROJECTS)
+      .findOne({ name: name.trim(), userId: session.user.id });
+
+    if (existingProject && trackId) {
+      // Add track to existing project
+      await db.collection(COLLECTIONS.PROJECTS).updateOne(
+        { _id: existingProject._id },
+        {
+          $addToSet: { trackIds: trackId },
+          $set: { updatedAt: now },
+        }
+      );
+
+      return NextResponse.json(
+        {
+          id: existingProject._id.toString(),
+          name: existingProject.name,
+          message: 'Track added to existing project',
+        },
+        { status: 200 }
+      );
+    }
+
+    // Create new project
+    const projectData = {
+      name: name.trim(),
+      description: description?.trim() || null,
+      userId: session.user.id,
+      trackIds: trackId ? [trackId] : [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const result = await db.collection(COLLECTIONS.PROJECTS).insertOne(projectData);
+
     const transformedProject = {
-      id: project.id,
-      name: project.name,
-      description: project.description,
-      trackCount: project._count.tracks,
-      createdAt: project.createdAt.toISOString(),
-      updatedAt: project.updatedAt.toISOString(),
+      id: result.insertedId.toString(),
+      name: projectData.name,
+      description: projectData.description,
+      trackCount: projectData.trackIds.length,
+      createdAt: projectData.createdAt.toISOString(),
+      updatedAt: projectData.updatedAt.toISOString(),
     };
 
     return NextResponse.json(transformedProject, { status: 201 });

@@ -1,6 +1,7 @@
 'use client';
 
 import { CreditsDisplay, UsageHistory, UsageAnalytics } from '@/components/credits';
+import { DashboardLayout } from '@/components/dashboard';
 import { Coins } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -18,12 +19,14 @@ export default function CreditsPage() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -32,19 +35,15 @@ export default function CreditsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Coins size={32} className="text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Credits Management
-            </h1>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Page Header */}
+        <div className="flex items-center gap-3">
+          <Coins size={32} className="text-blue-600" />
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Credits Management</h1>
+            <p className="text-gray-600 mt-1">Track your credit usage and manage your account balance</p>
           </div>
-          <p className="text-gray-600">
-            Track your credit usage and manage your account balance
-          </p>
         </div>
 
         {/* Main Content */}
@@ -74,6 +73,6 @@ export default function CreditsPage() {
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

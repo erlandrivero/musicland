@@ -1,6 +1,5 @@
 'use client';
 
-import { useCreditHistory } from '@/hooks/use-credits';
 import { Music, FileText, Scissors, Trash2, Calendar } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -23,18 +22,41 @@ const typeColors = {
   stem_separation: 'text-green-600 bg-green-100',
 };
 
+interface HistoryEntry {
+  _id: string;
+  creditsUsed: number;
+  type: string;
+  description: string;
+  createdAt: string;
+  metadata?: any;
+}
+
 export function UsageHistory() {
-  const { getHistory, clearHistory } = useCreditHistory();
-  const [history, setHistory] = useState(getHistory());
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    // Refresh history when component mounts
-    setHistory(getHistory());
-  }, [getHistory]);
+    // Fetch history from MongoDB
+    const fetchHistory = async () => {
+      try {
+        const response = await fetch('/api/credits/history');
+        if (response.ok) {
+          const data = await response.json();
+          setHistory(data.history);
+        }
+      } catch (error) {
+        console.error('Failed to fetch history:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleClear = () => {
-    clearHistory();
+    fetchHistory();
+  }, []);
+
+  const handleClear = async () => {
+    // TODO: Implement clear history API endpoint
     setHistory([]);
     setShowConfirm(false);
   };
@@ -94,35 +116,35 @@ export function UsageHistory() {
 
       {/* History List */}
       <div className="space-y-2">
-        {history.map((record) => {
-          const Icon = typeIcons[record.type];
-          const colorClass = typeColors[record.type];
-          const label = typeLabels[record.type];
+        {history.map((entry) => {
+          const Icon = typeIcons[entry.type as keyof typeof typeIcons] || Music;
+          const label = typeLabels[entry.type as keyof typeof typeLabels] || entry.type;
+          const colorClass = typeColors[entry.type as keyof typeof typeColors] || 'text-gray-600 bg-gray-100';
 
           return (
             <div
-              key={record.id}
+              key={entry._id}
               className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-shadow"
             >
               <div className={`p-2 rounded-lg ${colorClass}`}>
                 <Icon size={20} />
               </div>
-              
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-gray-900 truncate">
-                  {record.description}
-                </h4>
-                <p className="text-sm text-gray-500">
+
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-900">
                   {label}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {entry.description}
                 </p>
               </div>
 
               <div className="text-right">
-                <p className="font-semibold text-gray-900">
-                  -{record.cost} credits
-                </p>
+                <span className="text-sm font-medium text-gray-900">
+                  {entry.creditsUsed} credits
+                </span>
                 <p className="text-xs text-gray-500">
-                  {formatDate(new Date(record.timestamp))}
+                  {formatDate(new Date(entry.createdAt))}
                 </p>
               </div>
             </div>
