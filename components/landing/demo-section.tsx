@@ -116,7 +116,6 @@ export function DemoSection() {
               <video 
                 className="w-full h-full object-cover"
                 controls
-                poster="/demo-video-poster.jpg"
               >
                 <source src="/demo-video.mp4" type="video/mp4" />
                 Your browser does not support the video tag.
@@ -185,7 +184,7 @@ export function DemoSection() {
                             : ''
                         }`}
                         style={{ 
-                          height: `${Math.random() * 30 + 10}px`,
+                          height: `${((i * 7 + 13) % 30) + 10}px`,
                           animationDelay: `${i * 0.1}s`
                         }}
                       />
