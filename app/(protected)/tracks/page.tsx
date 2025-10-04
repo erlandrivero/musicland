@@ -80,26 +80,37 @@ export default function TracksPage() {
 
   const handleDownload = async (trackId: string, format: string) => {
     try {
+      // Get download URL from API
       const response = await fetch(`/api/music/download/${trackId}?format=${format}`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const track = tracks.find(t => t.id === trackId);
-        a.download = `${track?.title || 'track'}.${format.split('-')[0]}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        // Update download count
-        setTracks(prev => prev.map(t =>
-          t.id === trackId
-            ? { ...t, downloadCount: (t.downloadCount || 0) + 1 }
-            : t
-        ));
+      if (!response.ok) {
+        throw new Error('Failed to get download URL');
       }
+      
+      const data = await response.json();
+      const { downloadUrl, title } = data;
+      
+      // Fetch the actual audio file
+      const audioResponse = await fetch(downloadUrl);
+      if (!audioResponse.ok) {
+        throw new Error('Failed to download audio file');
+      }
+      
+      const blob = await audioResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title || 'track'}.${format.split('-')[0] || 'mp3'}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // Update download count
+      setTracks(prev => prev.map(t =>
+        t.id === trackId
+          ? { ...t, downloadCount: (t.downloadCount || 0) + 1 }
+          : t
+      ));
     } catch (error) {
       console.error('Download failed:', error);
       alert('Failed to download track. Please try again.');
