@@ -1,17 +1,13 @@
 services:
   - type: web
     name: midi-generation-service
-    env: python
+    env: docker
     region: oregon
     plan: standard
-    buildCommand: pip install -r requirements.txt
-    startCommand: python midi_service.py
-    runtime: python311
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PORT
         value: 10000
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: TEMP_DIR
         value: /tmp
     healthCheckPath: /health
