@@ -4,6 +4,7 @@ services:
     env: docker
     region: oregon
     plan: standard
+    rootDirectory: ./python
     dockerfilePath: ./Dockerfile
     envVars:
       - key: PORT
