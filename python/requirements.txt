@@ -1,4 +1,9 @@
 basic-pitch==0.3.2
+tensorflow==2.13.1
+numpy==1.24.3
+librosa==0.10.1
+scipy==1.11.4
+resampy==0.4.2
 flask==3.0.0
 flask-cors==4.0.0
 requests==2.31.0
