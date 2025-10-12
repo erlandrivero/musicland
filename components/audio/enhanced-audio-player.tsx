@@ -117,10 +117,15 @@ export function EnhancedAudioPlayer({
     return () => {
       try {
         if (wavesurfer) {
+          try {
+            wavesurfer.pause();
+          } catch (e) {
+            // Ignore pause errors
+          }
           wavesurfer.destroy();
         }
       } catch (error) {
-        // Ignore errors during cleanup
+        // Ignore all cleanup errors
       }
     };
   }, [audioUrl, isLooping, onNext]);
