@@ -14,6 +14,19 @@ export function UserMenu() {
   const [imageError, setImageError] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Validate image URL - only use external URLs (Google, etc.), not local paths
+  const getValidImageUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null
+    // Only allow external https/http URLs
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      return url
+    }
+    // Reject local paths like /uploads/profiles/...
+    return null
+  }
+
+  const validImageUrl = getValidImageUrl(session?.user?.image)
+
   // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -45,9 +58,9 @@ export function UserMenu() {
       >
         {/* Avatar */}
         <div className="relative">
-          {session.user.image && !imageError ? (
+          {validImageUrl && !imageError ? (
             <img
-              src={session.user.image}
+              src={validImageUrl}
               alt={session.user.name || 'User'}
               className="w-8 h-8 rounded-full object-cover"
               onError={() => setImageError(true)}
@@ -96,9 +109,9 @@ export function UserMenu() {
             {/* User Info Header */}
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                {session.user.image && !imageError ? (
+                {validImageUrl && !imageError ? (
                   <img
-                    src={session.user.image}
+                    src={validImageUrl}
                     alt={session.user.name || 'User'}
                     className="w-10 h-10 rounded-full object-cover"
                     onError={() => setImageError(true)}

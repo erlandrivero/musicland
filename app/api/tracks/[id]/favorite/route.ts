@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 // POST /api/tracks/:id/favorite - Toggle favorite status
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -18,26 +18,32 @@ export async function POST(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { isFavorite } = body;
 
     // Update favorite status in MongoDB
     const db = await getDatabase();
     const result = await db.collection(COLLECTIONS.TRACKS).findOneAndUpdate(
-      { id, userEmail: session.user.email },
-      { $set: { isFavorite } },
+      { id, userId: session.user.id },
+      { $set: { isFavorite, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );
 
-    if (!result || !result.value) {
+    if (!result) {
       return NextResponse.json(
         { error: 'NOT_FOUND', message: 'Track not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ id: result.value.id, isFavorite: result.value.isFavorite }, { status: 200 });
+    console.log('[API] Favorite updated successfully:', { id, isFavorite });
+    
+    return NextResponse.json({ 
+      success: true,
+      id: result.id, 
+      isFavorite: result.isFavorite 
+    }, { status: 200 });
   } catch (error: any) {
     console.error('[API] Failed to update favorite status:', error);
     return NextResponse.json(

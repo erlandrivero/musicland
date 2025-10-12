@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, title, audioUrl, videoUrl, tags, duration, lyrics } = body;
+    const { id, title, audioUrl, videoUrl, imageUrl, tags, duration, lyrics, mv, prompt, style, model } = body;
 
     if (!audioUrl) {
       return NextResponse.json(
@@ -79,9 +79,14 @@ export async function POST(request: NextRequest) {
       title: title || 'Untitled Track',
       audioUrl,
       videoUrl: videoUrl || null,
+      imageUrl: imageUrl || null,
       tags: tags || '',
-      duration: duration || 0,
       lyrics: lyrics || null,
+      duration: duration || 0,
+      mv: mv || null,
+      prompt: prompt || null,
+      style: style || null,
+      model: model || null,
       status: 'completed',
       isFavorite: false,
       playCount: 0,

@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Check if user exists in database
+    console.log('[User Init] Session image URL:', session.user.image);
     let user = await getUserByEmail(session.user.email);
     
     // 3. If user doesn't exist, create them
@@ -26,6 +27,28 @@ export async function GET(request: NextRequest) {
         image: session.user.image || undefined,
       });
       console.log('[User Init] ✅ User created successfully');
+    } else {
+      // Update user's image if it changed (Google profile updates)
+      // Only update if session has a valid external image URL
+      const sessionImage = session.user.image;
+      const isValidExternalUrl = sessionImage && (sessionImage.startsWith('https://') || sessionImage.startsWith('http://'));
+      
+      if (isValidExternalUrl && user.image !== sessionImage) {
+        const db = await import('@/lib/mongodb').then(m => m.getDatabase());
+        const COLLECTIONS = await import('@/lib/mongodb').then(m => m.COLLECTIONS);
+        
+        await (await db).collection(COLLECTIONS.USERS).updateOne(
+          { email: user.email },
+          { 
+            $set: { 
+              image: sessionImage,
+              updatedAt: new Date()
+            } 
+          }
+        );
+        user.image = sessionImage;
+        console.log('[User Init] ✅ Updated user profile image');
+      }
     }
 
     // 4. Return user data

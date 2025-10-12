@@ -22,14 +22,26 @@ export interface Track {
   artist?: string
   duration: number
   audioUrl: string
+  videoUrl?: string
   coverUrl?: string
+  imageUrl?: string
   genre: string
+  tags?: string
+  lyrics?: string
   createdAt: Date
   status: 'pending' | 'processing' | 'completed' | 'failed'
   prompt?: string
   style?: string
   isCustom: boolean
   model?: 'suno' | 'riffusion' | 'nuro'
+  mv?: string
+  isFavorite?: boolean
+  playCount?: number
+  downloadCount?: number
+  userId?: string
+  userEmail?: string
+  projectId?: string
+  generationId?: string
 }
 
 export interface CreditsResponse {
@@ -47,16 +59,6 @@ export interface Project {
   tracks: Track[]
   createdAt: Date
   updatedAt: Date
-}
-
-export interface Track {
-  id: string
-  title: string
-  audioUrl: string
-  duration: number
-  projectId: string
-  generationId: string
-  createdAt: Date
 }
 
 // API response types

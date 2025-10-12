@@ -149,21 +149,39 @@ export default function TracksPage() {
   const handleFavorite = async (trackId: string) => {
     try {
       const track = tracks.find(t => t.id === trackId);
+      const newFavoriteState = !track?.isFavorite;
+      
+      // Optimistic update
+      setTracks(prev => prev.map(t =>
+        t.id === trackId
+          ? { ...t, isFavorite: newFavoriteState }
+          : t
+      ));
+
       const response = await fetch(`/api/tracks/${trackId}/favorite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFavorite: !track?.isFavorite }),
+        body: JSON.stringify({ isFavorite: newFavoriteState }),
       });
 
-      if (response.ok) {
+      if (!response.ok) {
+        // Revert on error
+        console.error('Failed to update favorite status');
         setTracks(prev => prev.map(t =>
           t.id === trackId
-            ? { ...t, isFavorite: !t.isFavorite }
+            ? { ...t, isFavorite: !newFavoriteState }
             : t
         ));
       }
     } catch (error) {
       console.error('Failed to toggle favorite:', error);
+      // Revert on error
+      const track = tracks.find(t => t.id === trackId);
+      setTracks(prev => prev.map(t =>
+        t.id === trackId
+          ? { ...t, isFavorite: track?.isFavorite ?? false }
+          : t
+      ));
     }
   };
 

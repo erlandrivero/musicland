@@ -2,19 +2,23 @@
 
 import { useState, useMemo } from 'react';
 import { Search, Filter, Grid, List, Play, Download, Share2, Trash2, Heart, Clock, Calendar } from 'lucide-react';
-import { EnhancedAudioPlayer } from '@/components/audio/enhanced-audio-player';
+import { TabbedMusicPlayer } from '@/components/audio';
 
 export interface Track {
   id: string;
   title: string;
   audioUrl: string;
+  videoUrl?: string;
+  imageUrl?: string;
   tags?: string;
+  lyrics?: string;
   duration?: number;
   createdAt: string;
   status: 'completed' | 'processing' | 'failed';
   isFavorite?: boolean;
   playCount?: number;
   downloadCount?: number;
+  mv?: string;
 }
 
 interface TrackListProps {
@@ -418,35 +422,48 @@ export function TrackList({
       )}
 
       {/* Currently Playing */}
-      {currentlyPlaying && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-gray-200 shadow-2xl">
-          <div className="max-w-7xl mx-auto">
-            <EnhancedAudioPlayer
-              trackId={currentlyPlaying}
-              audioUrl={filteredTracks.find(t => t.id === currentlyPlaying)?.audioUrl || ''}
-              title={filteredTracks.find(t => t.id === currentlyPlaying)?.title || ''}
-              duration={filteredTracks.find(t => t.id === currentlyPlaying)?.duration}
-              isFavorite={filteredTracks.find(t => t.id === currentlyPlaying)?.isFavorite}
-              onClose={() => setCurrentlyPlaying(null)}
-              onNext={() => {
-                const currentIndex = filteredTracks.findIndex(t => t.id === currentlyPlaying);
-                if (currentIndex < filteredTracks.length - 1) {
-                  setCurrentlyPlaying(filteredTracks[currentIndex + 1].id);
-                }
-              }}
-              onPrevious={() => {
-                const currentIndex = filteredTracks.findIndex(t => t.id === currentlyPlaying);
-                if (currentIndex > 0) {
-                  setCurrentlyPlaying(filteredTracks[currentIndex - 1].id);
-                }
-              }}
-              onFavorite={onFavorite}
-              onShare={onShare}
-              onDownload={onDownload}
-            />
+      {currentlyPlaying && (() => {
+        const currentTrack = filteredTracks.find(t => t.id === currentlyPlaying);
+        if (!currentTrack) return null;
+        
+        const currentIndex = filteredTracks.findIndex(t => t.id === currentlyPlaying);
+        
+        return (
+          <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-gray-200 shadow-2xl">
+            <div className="max-w-7xl mx-auto">
+              <TabbedMusicPlayer
+                key={`${currentlyPlaying}-${currentTrack.isFavorite ?? false}`}
+                trackId={currentlyPlaying}
+                audioUrl={currentTrack.audioUrl}
+                title={currentTrack.title}
+                artist="AI Generated"
+                lyrics={currentTrack.lyrics}
+                tags={currentTrack.tags}
+                duration={currentTrack.duration}
+                videoUrl={currentTrack.videoUrl}
+                imageUrl={currentTrack.imageUrl}
+                mv={currentTrack.mv}
+                createdAt={currentTrack.createdAt}
+                isFavorite={currentTrack.isFavorite}
+                onClose={() => setCurrentlyPlaying(null)}
+                onNext={() => {
+                  if (currentIndex >= 0 && currentIndex < filteredTracks.length - 1) {
+                    setCurrentlyPlaying(filteredTracks[currentIndex + 1].id);
+                  }
+                }}
+                onPrevious={() => {
+                  if (currentIndex > 0) {
+                    setCurrentlyPlaying(filteredTracks[currentIndex - 1].id);
+                  }
+                }}
+                onFavorite={onFavorite}
+                onShare={onShare}
+                onDownload={onDownload}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

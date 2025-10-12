@@ -33,7 +33,10 @@ export async function GET(
       audioUrl: status.audio_url,
       videoUrl: status.video_url,
       title: status.title,
+      tags: status.tags,
+      lyrics: status.lyrics,
       duration: status.duration,
+      created_at: status.created_at,
       error: status.error,
     }, { status: 200 });
 
