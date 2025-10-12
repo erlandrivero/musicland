@@ -25,20 +25,34 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
 
   // Fetch MIDI status on mount
   useEffect(() => {
-    fetchMidiStatus();
-  }, [trackId]);
-
-  const fetchMidiStatus = async () => {
-    try {
-      const response = await fetch(`/api/tracks/${trackId}/generate-midi`);
-      if (response.ok) {
-        const data = await response.json();
-        setMidiStatus(data);
+    const abortController = new AbortController();
+    
+    const fetchMidiStatus = async () => {
+      try {
+        const response = await fetch(`/api/tracks/${trackId}/generate-midi`, {
+          signal: abortController.signal
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setMidiStatus(data);
+        }
+      } catch (err: any) {
+        // Ignore abort errors
+        if (err.name === 'AbortError') {
+          console.log('[MIDI Viewer] Fetch aborted');
+          return;
+        }
+        console.error('[MIDI Viewer] Error fetching status:', err);
       }
-    } catch (err: any) {
-      console.error('[MIDI Viewer] Error fetching status:', err);
-    }
-  };
+    };
+    
+    fetchMidiStatus();
+    
+    // Cleanup: abort fetch on unmount
+    return () => {
+      abortController.abort();
+    };
+  }, [trackId]);
 
   const handleGenerateMidi = async () => {
     setIsGenerating(true);
