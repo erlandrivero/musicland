@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Music, FileText, Sheet, Info } from 'lucide-react';
+import { Music, FileText, Sheet, Info, FileAudio } from 'lucide-react';
 import { EnhancedAudioPlayer } from './enhanced-audio-player';
 import { LyricsViewer } from '../lyrics/LyricsViewer';
 import { SheetMusicViewer } from '../sheet-music';
+import { MidiViewer } from '../midi';
 
 interface TabbedMusicPlayerProps {
   // Audio props
@@ -36,7 +37,7 @@ interface TabbedMusicPlayerProps {
   isFavorite?: boolean;
 }
 
-type TabType = 'audio' | 'lyrics' | 'sheet' | 'details';
+type TabType = 'audio' | 'lyrics' | 'sheet' | 'midi' | 'details';
 
 export function TabbedMusicPlayer({
   audioUrl,
@@ -80,6 +81,12 @@ export function TabbedMusicPlayer({
       id: 'sheet' as TabType,
       label: 'Sheet Music',
       icon: Sheet,
+      enabled: true,
+    },
+    {
+      id: 'midi' as TabType,
+      label: 'MIDI',
+      icon: FileAudio,
       enabled: true,
     },
     {
@@ -169,6 +176,17 @@ export function TabbedMusicPlayer({
             audioUrl={audioUrl}
           />
         </div>
+
+        {/* MIDI Tab */}
+        {activeTab === 'midi' && (
+          <div className="p-0">
+            <MidiViewer
+              trackId={trackId}
+              title={title}
+              audioUrl={audioUrl}
+            />
+          </div>
+        )}
 
         {/* Details Tab */}
         {activeTab === 'details' && (

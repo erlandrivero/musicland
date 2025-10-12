@@ -64,12 +64,13 @@ def generate_midi():
         print('[MIDI Service] Running Basic Pitch...')
         
         predict_and_save(
-            [audio_path],
-            output_dir,
-            True,  # Save MIDI
-            False,  # Don't save model outputs
-            False,  # Don't save notes
-            ICASSP_2022_MODEL_PATH
+            audio_path_list=[audio_path],
+            output_directory=output_dir,
+            save_midi=True,
+            sonify_midi=False,
+            save_model_outputs=False,
+            save_notes=False,
+            model_or_model_path=ICASSP_2022_MODEL_PATH
         )
         
         # Find generated MIDI file
