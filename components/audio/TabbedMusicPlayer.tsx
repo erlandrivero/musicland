@@ -239,7 +239,7 @@ export function TabbedMusicPlayer({
 
         {/* Video Tab */}
         {activeTab === 'video' && (
-          <div className="p-0 h-[450px]">
+          <div className="p-0 h-[320px]">
             <VideoViewer
               videoUrl={videoUrl}
               audioUrl={audioUrl}

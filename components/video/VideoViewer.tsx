@@ -15,6 +15,7 @@ export function VideoViewer({ videoUrl, audioUrl, title, artist = 'AI Generated'
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(1);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyzerRef = useRef<AnalyserNode | null>(null);
@@ -22,39 +23,58 @@ export function VideoViewer({ videoUrl, audioUrl, title, artist = 'AI Generated'
 
   // Toggle play/pause
   const togglePlayPause = () => {
-    if (!videoRef.current) return;
-    
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
+    // For video mode
+    if (videoUrl && videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+      return;
     }
-    setIsPlaying(!isPlaying);
+    
+    // For audio visualization mode
+    if (!videoUrl && audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
   // Toggle mute
   const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
+    if (videoUrl && videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    } else if (!videoUrl && audioRef.current) {
+      audioRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
   };
 
   // Handle volume change
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
     setVolume(newVolume);
-    if (videoRef.current) {
+    if (videoUrl && videoRef.current) {
       videoRef.current.volume = newVolume;
+    } else if (!videoUrl && audioRef.current) {
+      audioRef.current.volume = newVolume;
     }
   };
 
   // Toggle fullscreen
   const toggleFullscreen = () => {
-    if (!videoRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      videoRef.current.requestFullscreen();
+    if (videoUrl && videoRef.current) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        videoRef.current.requestFullscreen();
+      }
     }
   };
 
@@ -124,6 +144,15 @@ export function VideoViewer({ videoUrl, audioUrl, title, artist = 'AI Generated'
     // Fallback: Audio visualization
     return (
       <div className="flex flex-col h-full bg-gray-900">
+        {/* Hidden Audio Element */}
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          className="hidden"
+        />
+
         {/* Visualization Canvas */}
         <div className="relative flex-1 bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
           <canvas
@@ -131,15 +160,17 @@ export function VideoViewer({ videoUrl, audioUrl, title, artist = 'AI Generated'
             className="w-full h-full"
           />
           
-          {/* Overlay Info */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <div className="bg-black/50 backdrop-blur-sm px-8 py-6 rounded-lg">
-              <VideoIcon className="w-16 h-16 mx-auto mb-4 text-white" />
-              <h3 className="text-2xl font-bold text-white mb-2">{title}</h3>
-              <p className="text-gray-300">{artist}</p>
-              <p className="text-sm text-gray-400 mt-4">Audio Visualization</p>
+          {/* Overlay Info - Only show when paused */}
+          {!isPlaying && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <div className="bg-black/50 backdrop-blur-sm px-8 py-6 rounded-lg">
+                <VideoIcon className="w-16 h-16 mx-auto mb-4 text-white" />
+                <h3 className="text-2xl font-bold text-white mb-2">{title}</h3>
+                <p className="text-gray-300">{artist}</p>
+                <p className="text-sm text-gray-400 mt-4">Audio Visualization</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Simple Controls */}
