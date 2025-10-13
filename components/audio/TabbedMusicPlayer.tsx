@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Music, FileText, Sheet, Info, FileAudio } from 'lucide-react';
+import { Music, FileText, Sheet, Info, FileAudio, Video } from 'lucide-react';
 import { EnhancedAudioPlayer } from './enhanced-audio-player';
 import { LyricsViewer } from '../lyrics/LyricsViewer';
 import { SheetMusicViewer } from '../sheet-music';
 import { MidiViewer } from '../midi';
+import { VideoViewer } from '../video';
 
 interface TabbedMusicPlayerProps {
   // Audio props
@@ -37,7 +38,7 @@ interface TabbedMusicPlayerProps {
   isFavorite?: boolean;
 }
 
-type TabType = 'audio' | 'lyrics' | 'sheet' | 'midi' | 'details';
+type TabType = 'audio' | 'lyrics' | 'video' | 'midi' | 'sheet' | 'details';
 
 export function TabbedMusicPlayer({
   audioUrl,
@@ -76,6 +77,12 @@ export function TabbedMusicPlayer({
       icon: FileText,
       enabled: !!lyrics,
       badge: lyrics ? undefined : 'N/A',
+    },
+    {
+      id: 'video' as TabType,
+      label: 'Video',
+      icon: Video,
+      enabled: true,
     },
     {
       id: 'midi' as TabType,
@@ -211,6 +218,18 @@ export function TabbedMusicPlayer({
               title={title}
               artist={artist}
               onShare={() => onShare?.(trackId)}
+            />
+          </div>
+        )}
+
+        {/* Video Tab */}
+        {activeTab === 'video' && (
+          <div className="p-0 h-[450px]">
+            <VideoViewer
+              videoUrl={videoUrl}
+              audioUrl={audioUrl}
+              title={title}
+              artist={artist}
             />
           </div>
         )}
