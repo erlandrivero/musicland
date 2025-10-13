@@ -21,6 +21,11 @@ export function VideoViewer({ videoUrl, audioUrl, title, artist = 'AI Generated'
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>();
 
+  // Debug: Log video URL
+  useEffect(() => {
+    console.log('[VideoViewer] Track:', title, 'VideoURL:', videoUrl);
+  }, [title, videoUrl]);
+
   // Toggle play/pause
   const togglePlayPause = () => {
     // For video mode
@@ -196,6 +201,7 @@ export function VideoViewer({ videoUrl, audioUrl, title, artist = 'AI Generated'
         <video
           ref={videoRef}
           src={videoUrl}
+          key={videoUrl}
           className="w-full h-full object-contain"
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}

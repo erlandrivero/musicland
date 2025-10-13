@@ -241,6 +241,7 @@ export function TabbedMusicPlayer({
         {activeTab === 'video' && (
           <div className="p-0 h-[320px]">
             <VideoViewer
+              key={trackId}
               videoUrl={videoUrl}
               audioUrl={audioUrl}
               title={title}
