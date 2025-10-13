@@ -166,38 +166,39 @@ export function TabbedMusicPlayer({
         </div>
       </div>
       
-      {/* Tab Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <nav className="flex overflow-x-auto scrollbar-hide" aria-label="Music player tabs">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            
-            return (
-              <button
-                key={tab.id}
-                onClick={() => tab.enabled && setActiveTab(tab.id)}
-                disabled={!tab.enabled}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-900'
-                    : tab.enabled
-                    ? 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
-                    : 'border-transparent text-gray-400 dark:text-gray-600 cursor-not-allowed'
-                }`}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <Icon className="w-4 h-4" />
-                <span>{tab.label}</span>
-                {tab.badge && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs font-semibold rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-x-auto" role="tablist">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => tab.enabled && setActiveTab(tab.id)}
+              disabled={!tab.enabled}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`${tab.id}-panel`}
+              aria-label={`${tab.label} tab${tab.badge ? ` (${tab.badge})` : ''}`}
+              className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors whitespace-nowrap ${
+                isActive
+                  ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                  : tab.enabled
+                  ? 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                  : 'text-gray-400 dark:text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              <Icon className="w-4 h-4" aria-hidden="true" />
+              <span>{tab.label}</span>
+              {tab.badge && (
+                <span className="px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded">
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
