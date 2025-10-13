@@ -76,25 +76,16 @@ export async function POST(
 
     console.log(`[Generate MIDI] Received MIDI: ${midiSize} bytes`);
 
-    // Save MIDI to public directory
-    const fs = await import('fs/promises');
-    const path = await import('path');
-    const publicMidiDir = path.join(process.cwd(), 'public', 'midi');
-    
-    await fs.mkdir(publicMidiDir, { recursive: true });
-    const midiFilename = `${id}.mid`;
-    const midiPath = path.join(publicMidiDir, midiFilename);
-    
-    await fs.writeFile(midiPath, Buffer.from(midiBuffer));
+    // Convert MIDI to base64 data URL for storage in database
+    const midiBase64 = Buffer.from(midiBuffer).toString('base64');
+    const midiDataUrl = `data:audio/midi;base64,${midiBase64}`;
 
-    const midiUrl = `/midi/${midiFilename}`;
-
-    // Update track in database
+    // Update track in database with data URL
     await db.collection(COLLECTIONS.TRACKS).updateOne(
       { id },
       {
         $set: {
-          midiUrl,
+          midiUrl: midiDataUrl,
           midiStatus: 'completed',
           midiGeneratedAt: new Date(),
           midiSize,
@@ -103,11 +94,11 @@ export async function POST(
       }
     );
 
-    console.log(`[Generate MIDI] Success! MIDI saved to: ${midiUrl}`);
+    console.log(`[Generate MIDI] Success! MIDI stored as data URL (${midiSize} bytes)`);
 
     return NextResponse.json({
       success: true,
-      midiUrl,
+      midiUrl: midiDataUrl,
       midiSize
     });
 
