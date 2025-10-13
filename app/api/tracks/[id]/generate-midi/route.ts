@@ -45,6 +45,7 @@ export async function POST(
 
     // Call Python MIDI service on Render
     console.log(`[Generate MIDI] Calling Python service: ${MIDI_SERVICE_URL}`);
+    console.log(`[Generate MIDI] Request body:`, { audioUrl: track.audioUrl, trackId: id });
     
     const midiResponse = await fetch(`${MIDI_SERVICE_URL}/generate-midi`, {
       method: 'POST',
@@ -56,10 +57,16 @@ export async function POST(
         trackId: id
       }),
       signal: AbortSignal.timeout(120000) // 2 minute timeout
+    }).catch((fetchError) => {
+      console.error('[Generate MIDI] Fetch failed:', fetchError);
+      throw new Error(`MIDI service error: ${fetchError.message}`);
     });
+
+    console.log(`[Generate MIDI] Response status: ${midiResponse.status}`);
 
     if (!midiResponse.ok) {
       const errorData = await midiResponse.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('[Generate MIDI] Error response:', errorData);
       throw new Error(`MIDI service error: ${errorData.error || midiResponse.statusText}`);
     }
 

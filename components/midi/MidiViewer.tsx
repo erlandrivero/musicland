@@ -35,6 +35,10 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
         if (response.ok) {
           const data = await response.json();
           setMidiStatus(data);
+          // Clear error if MIDI exists
+          if (data.midiUrl) {
+            setError(null);
+          }
         }
       } catch (err: any) {
         // Ignore abort errors
@@ -42,7 +46,8 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
           console.log('[MIDI Viewer] Fetch aborted');
           return;
         }
-        console.error('[MIDI Viewer] Error fetching status:', err);
+        // Silently fail status fetch - not critical
+        console.log('[MIDI Viewer] Could not fetch status, will retry on generate');
       }
     };
     
@@ -54,22 +59,33 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
     };
   }, [trackId]);
 
-  const handleGenerateMidi = async () => {
+  const handleGenerateMidi = async (regenerate = false) => {
     setIsGenerating(true);
     setError(null);
 
     try {
-      console.log('[MIDI Viewer] Generating MIDI for track:', trackId);
+      console.log('[MIDI Viewer] Generating MIDI for track:', trackId, regenerate ? '(regenerate)' : '');
       
-      const response = await fetch(`/api/tracks/${trackId}/generate-midi`, {
+      const url = `/api/tracks/${trackId}/generate-midi${regenerate ? '?regenerate=true' : ''}`;
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setMidiStatus(data);
         console.log('[MIDI Viewer] MIDI generated successfully');
+        
+        // Refetch full status to get all metadata
+        const statusResponse = await fetch(`/api/tracks/${trackId}/generate-midi`);
+        if (statusResponse.ok) {
+          const fullStatus = await statusResponse.json();
+          setMidiStatus(fullStatus);
+          setError(null);
+        } else {
+          setMidiStatus(data);
+          setError(null);
+        }
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'MIDI generation failed');
@@ -160,7 +176,7 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
             </div>
           )}
 
-          {midiStatus.midiError && (
+          {midiStatus.midiError && !midiStatus.midiUrl && (
             <div className="flex items-start gap-2 text-sm text-red-600 dark:text-red-400">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>{midiStatus.midiError}</span>
@@ -169,8 +185,8 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
         </div>
       )}
 
-      {/* Error Display */}
-      {error && (
+      {/* Error Display - Only show if no MIDI exists and there's an error */}
+      {error && !midiStatus?.midiUrl && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
           <div>
@@ -186,7 +202,7 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
       <div className="flex flex-col gap-3">
         {!midiStatus?.midiUrl ? (
           <button
-            onClick={handleGenerateMidi}
+            onClick={() => handleGenerateMidi()}
             disabled={isGenerating || !audioUrl}
             className="flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
           >
@@ -213,11 +229,11 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
             </button>
             
             <button
-              onClick={handleGenerateMidi}
+              onClick={() => handleGenerateMidi(true)}
               disabled={isGenerating}
-              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg transition-colors"
+              className="px-6 py-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Regenerate
+              {isGenerating ? 'Regenerating...' : 'Regenerate'}
             </button>
           </div>
         )}

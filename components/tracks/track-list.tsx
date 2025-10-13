@@ -432,7 +432,7 @@ export function TrackList({
           <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-gray-200 shadow-2xl">
             <div className="max-w-7xl mx-auto">
               <TabbedMusicPlayer
-                key={`${currentlyPlaying}-${currentTrack.isFavorite ?? false}`}
+                key={currentlyPlaying}
                 trackId={currentlyPlaying}
                 audioUrl={currentTrack.audioUrl}
                 title={currentTrack.title}

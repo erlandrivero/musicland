@@ -183,46 +183,7 @@ export function EnhancedAudioPlayer({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-lg overflow-hidden">
-      {/* Header */}
-      <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white truncate">{title}</h3>
-            <p className="text-sm text-blue-100">{artist}</p>
-          </div>
-          <div className="flex items-center gap-2 ml-4">
-            <button
-              onClick={() => onFavorite?.(trackId)}
-              className={`p-2 rounded-full transition-colors ${
-                isFavorite 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
-              }`}
-              title="Favorite"
-            >
-              <Heart size={20} fill={isFavorite ? 'currentColor' : 'none'} />
-            </button>
-            <button
-              onClick={() => onShare?.(trackId)}
-              className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
-              title="Share"
-            >
-              <Share2 size={20} />
-            </button>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="p-2 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors"
-                title="Close Player"
-              >
-                <X size={20} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <div className="bg-white overflow-hidden">
       {/* Waveform */}
       <div className="relative bg-gray-50 p-4">
         {isLoading && (

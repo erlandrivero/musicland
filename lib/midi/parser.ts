@@ -86,8 +86,8 @@ export async function parseMIDIFile(midiUrl: string): Promise<ParsedMIDI> {
     // Sort notes by time
     const sortedNotes = [...track.notes].sort((a, b) => a.time - b.time);
     
-    // Take first 40 notes for initial display (10 measures x 4 beats)
-    const notesToProcess = sortedNotes.slice(0, 40);
+    // Process all notes (full song)
+    const notesToProcess = sortedNotes;
     
     for (const note of notesToProcess) {
       const vexNote = midiNoteToVexFlow(note.midi);
@@ -112,13 +112,6 @@ export async function parseMIDIFile(midiUrl: string): Promise<ParsedMIDI> {
     // Add remaining notes as last measure
     if (currentMeasure.length > 0) {
       measures.push(currentMeasure);
-    }
-    
-    // Ensure we have at least 10 measures (pad with rests if needed)
-    while (measures.length < 10) {
-      measures.push([
-        { keys: ['b/4'], duration: 'wr' } // Whole rest
-      ]);
     }
     
     console.log('[MIDI Parser] Parsed measures:', measures.length);

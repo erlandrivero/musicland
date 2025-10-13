@@ -41,18 +41,26 @@ export function SheetMusicViewer({ trackId, title, audioUrl }: SheetMusicViewerP
       console.log('[SheetMusic] VF:', VF);
       const { Renderer, Stave, StaveNote, Formatter } = VF;
 
-      // Create SVG renderer (full page size)
+      // Use provided notes or generate demo
+      const allNotes = notesData || generateDemoNotes();
+      
+      // Calculate dynamic height based on number of measures
+      const staveSpacing = 120;
+      const startY = 100;
+      const canvasHeight = startY + (allNotes.length * staveSpacing) + 100; // Extra padding at bottom
+      
+      // Create SVG renderer (dynamic size)
       const div = containerRef.current;
       console.log('[SheetMusic] Creating renderer...');
       const renderer = new Renderer(div, Renderer.Backends.SVG);
-      renderer.resize(1000, 1400);
+      renderer.resize(1000, canvasHeight);
       const context = renderer.getContext();
       
       // Add title at the top in musical style
       context.setFont('Times New Roman', 24, 'bold');
       context.fillText(title || 'Untitled', 30, 40);
       context.setFont('Times New Roman', 14, 'italic');
-      const subtitle = usedRealMIDI ? 'Sheet Music (AI Generated)' : 'Sheet Music (Demo)';
+      const subtitle = 'AI-Generated Transcription';
       context.fillText(subtitle, 30, 60);
       
       context.setFont('Arial', 10);
@@ -61,15 +69,10 @@ export function SheetMusicViewer({ trackId, title, audioUrl }: SheetMusicViewerP
       console.log('[SheetMusic] Creating staves...');
       
       const staveWidth = 950;
-      const staveSpacing = 120;
-      const startY = 100; // Start lower to make room for title
       
-      // Use provided notes or generate demo
-      const allNotes = notesData || generateDemoNotes();
-      
-      // Create staves based on number of measures
+      // Create staves based on number of measures (all measures)
       const staves = [];
-      for (let i = 0; i < Math.min(allNotes.length, 10); i++) {
+      for (let i = 0; i < allNotes.length; i++) {
         const stave = new Stave(20, startY + (i * staveSpacing), staveWidth);
         if (i === 0) {
           stave.addClef('treble').addTimeSignature('4/4');
@@ -227,11 +230,11 @@ export function SheetMusicViewer({ trackId, title, audioUrl }: SheetMusicViewerP
   }, [trackId]);
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className={`relative flex flex-col ${!hasSheetMusic ? 'bg-gradient-to-br from-blue-50 to-purple-50 h-[320px]' : 'bg-white'}`}>
       {/* Generate prompt overlay */}
       {!hasSheetMusic && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-blue-50 to-purple-50 z-20">
-          <div className="max-w-md text-center space-y-6">
+        <div className="flex flex-col items-center justify-center p-6 h-full">
+          <div className="max-w-md text-center space-y-4">
             <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
               <Music className="w-10 h-10 text-white" />
             </div>
@@ -274,7 +277,7 @@ export function SheetMusicViewer({ trackId, title, audioUrl }: SheetMusicViewerP
       )}
 
       {/* Sheet music view - always rendered */}
-      <div className="relative flex-1 overflow-auto bg-white">
+      <div className={`relative flex-1 overflow-auto bg-white p-6 ${!hasSheetMusic ? 'opacity-0 pointer-events-none absolute' : ''}`}>
         {/* Floating Controls - Top Right */}
         {hasSheetMusic && (
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-white/90 backdrop-blur-sm p-2 rounded-lg shadow-lg border border-gray-200">

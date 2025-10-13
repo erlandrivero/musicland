@@ -78,15 +78,15 @@ export function TabbedMusicPlayer({
       badge: lyrics ? undefined : 'N/A',
     },
     {
-      id: 'sheet' as TabType,
-      label: 'Sheet Music',
-      icon: Sheet,
-      enabled: true,
-    },
-    {
       id: 'midi' as TabType,
       label: 'MIDI',
       icon: FileAudio,
+      enabled: true,
+    },
+    {
+      id: 'sheet' as TabType,
+      label: 'Sheet Music',
+      icon: Sheet,
       enabled: true,
     },
     {
@@ -99,6 +99,54 @@ export function TabbedMusicPlayer({
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+      {/* Header with Track Info and Actions */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 px-6 py-4 flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-white truncate">{title}</h3>
+          <p className="text-sm text-blue-100 dark:text-blue-200">{artist}</p>
+        </div>
+        <div className="flex items-center gap-2 ml-4">
+          {onFavorite && (
+            <button
+              onClick={() => onFavorite(trackId)}
+              className="p-2 rounded-full hover:bg-white/20 transition-colors"
+              title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <svg className={`w-5 h-5 ${isFavorite ? 'fill-white' : 'stroke-white fill-none'}`} viewBox="0 0 24 24" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </button>
+          )}
+          {onShare && (
+            <button
+              onClick={() => onShare(trackId)}
+              className="p-2 rounded-full hover:bg-white/20 transition-colors"
+              title="Share"
+            >
+              <svg className="w-5 h-5 stroke-white fill-none" viewBox="0 0 24 24" strokeWidth="2">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </button>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-white/20 transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5 stroke-white fill-none" viewBox="0 0 24 24" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+      
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
         <nav className="flex overflow-x-auto scrollbar-hide" aria-label="Music player tabs">
@@ -134,7 +182,7 @@ export function TabbedMusicPlayer({
       </div>
 
       {/* Tab Content */}
-      <div className="min-h-[400px] max-h-[600px] overflow-y-auto">
+      <div className={`overflow-y-auto ${activeTab === 'audio' ? '' : 'min-h-[320px] max-h-[320px]'}`}>
         {/* Audio Tab */}
         {activeTab === 'audio' && (
           <div className="p-0">
@@ -168,7 +216,7 @@ export function TabbedMusicPlayer({
         )}
 
         {/* Sheet Music Tab - Keep mounted to preserve generated content */}
-        <div className={`h-full ${activeTab === 'sheet' ? '' : 'hidden'}`}>
+        <div className={`${activeTab === 'sheet' ? '' : 'hidden'}`}>
           <SheetMusicViewer
             key={trackId}
             trackId={trackId}
