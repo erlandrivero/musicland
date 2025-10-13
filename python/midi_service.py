@@ -14,7 +14,20 @@ from basic_pitch.inference import predict_and_save
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
 app = Flask(__name__)
-CORS(app)
+
+# Allow CORS for production and development
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "http://localhost:3000",
+            "http://localhost:3001", 
+            "https://musicland.netlify.app",
+            "https://*.netlify.app"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Configuration
 TEMP_DIR = os.environ.get('TEMP_DIR', tempfile.gettempdir())
