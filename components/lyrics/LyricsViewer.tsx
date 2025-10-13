@@ -28,6 +28,8 @@ export function LyricsViewer({
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg' | 'xl'>('base');
   const [searchQuery, setSearchQuery] = useState('');
   const [showLineNumbers, setShowLineNumbers] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   // Parse lyrics (memoized for performance)
   const parsedLyrics: ParsedLyrics = useMemo(() => {
@@ -53,6 +55,22 @@ export function LyricsViewer({
     setFontSize(size);
     localStorage.setItem('lyrics-font-size', size);
   };
+
+  // Auto-scroll lyrics based on playback time
+  useEffect(() => {
+    if (!autoScroll || !contentRef.current || !duration || duration === 0) return;
+    
+    // Calculate scroll position based on current time
+    const progress = currentTime / duration;
+    const scrollHeight = contentRef.current.scrollHeight - contentRef.current.clientHeight;
+    const targetScroll = progress * scrollHeight;
+    
+    // Smooth scroll to position
+    contentRef.current.scrollTo({
+      top: targetScroll,
+      behavior: 'smooth'
+    });
+  }, [currentTime, duration, autoScroll]);
 
   // Empty state - no lyrics available
   if (!lyrics || lyrics.trim() === '') {
@@ -136,8 +154,23 @@ export function LyricsViewer({
         onShare={onShare}
       />
 
+      {/* Auto-scroll Toggle */}
+      {duration > 0 && (
+        <div className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoScroll}
+              onChange={(e) => setAutoScroll(e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-gray-700 dark:text-gray-300">Auto-scroll with playback</span>
+          </label>
+        </div>
+      )}
+
       {/* Lyrics Content */}
-      <div className="lyrics-content">
+      <div ref={contentRef} className="lyrics-content max-h-[400px] overflow-y-auto">
         {parsedLyrics.sections.map((section, index) => (
           <LyricsSection
             key={index}

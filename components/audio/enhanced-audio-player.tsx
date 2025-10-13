@@ -31,6 +31,7 @@ interface EnhancedAudioPlayerProps {
   onDownload?: (trackId: string, format: string) => void;
   onClose?: () => void;
   isFavorite?: boolean;
+  onTimeUpdate?: (time: number) => void;
 }
 
 export function EnhancedAudioPlayer({
@@ -38,6 +39,7 @@ export function EnhancedAudioPlayer({
   title,
   artist = 'AI Generated',
   duration,
+  onTimeUpdate,
   trackId,
   onPrevious,
   onNext,
@@ -95,7 +97,9 @@ export function EnhancedAudioPlayer({
     });
 
     wavesurfer.on('audioprocess', () => {
-      setCurrentTime(wavesurfer.getCurrentTime());
+      const time = wavesurfer.getCurrentTime();
+      setCurrentTime(time);
+      onTimeUpdate?.(time);
     });
 
     wavesurfer.on('finish', () => {

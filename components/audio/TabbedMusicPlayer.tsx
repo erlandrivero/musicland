@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Music, FileText, Sheet, Info, FileAudio, Video } from 'lucide-react';
+import { Music, FileText, Sheet, Info, FileAudio, Video, Download } from 'lucide-react';
 import { EnhancedAudioPlayer } from './enhanced-audio-player';
 import { LyricsViewer } from '../lyrics/LyricsViewer';
 import { SheetMusicViewer } from '../sheet-music';
 import { MidiViewer } from '../midi';
 import { VideoViewer } from '../video';
+import { BatchExportModal } from '../export';
 
 interface TabbedMusicPlayerProps {
   // Audio props
@@ -27,6 +28,7 @@ interface TabbedMusicPlayerProps {
   prompt?: string;
   style?: string;
   createdAt?: string;
+  midiUrl?: string | null;
   
   // Event handlers
   onPrevious?: () => void;
@@ -54,6 +56,7 @@ export function TabbedMusicPlayer({
   prompt,
   style,
   createdAt,
+  midiUrl,
   onPrevious,
   onNext,
   onFavorite,
@@ -63,6 +66,8 @@ export function TabbedMusicPlayer({
   isFavorite = false,
 }: TabbedMusicPlayerProps) {
   const [activeTab, setActiveTab] = useState<TabType>('audio');
+  const [currentTime, setCurrentTime] = useState(0);
+  const [showBatchExport, setShowBatchExport] = useState(false);
 
   const tabs = [
     {
@@ -124,6 +129,13 @@ export function TabbedMusicPlayer({
               </svg>
             </button>
           )}
+          <button
+            onClick={() => setShowBatchExport(true)}
+            className="p-2 rounded-full hover:bg-white/20 transition-colors"
+            title="Batch Export"
+          >
+            <Download className="w-5 h-5 text-white" />
+          </button>
           {onShare && (
             <button
               onClick={() => onShare(trackId)}
@@ -206,6 +218,7 @@ export function TabbedMusicPlayer({
               onDownload={onDownload}
               onClose={onClose}
               isFavorite={isFavorite}
+              onTimeUpdate={setCurrentTime}
             />
           </div>
         )}
@@ -218,6 +231,8 @@ export function TabbedMusicPlayer({
               title={title}
               artist={artist}
               onShare={() => onShare?.(trackId)}
+              currentTime={currentTime}
+              duration={duration}
             />
           </div>
         )}
@@ -372,6 +387,19 @@ export function TabbedMusicPlayer({
           </div>
         )}
       </div>
+
+      {/* Batch Export Modal */}
+      <BatchExportModal
+        isOpen={showBatchExport}
+        onClose={() => setShowBatchExport(false)}
+        track={{
+          id: trackId,
+          title,
+          audioUrl,
+          lyrics,
+          midiUrl,
+        }}
+      />
     </div>
   );
 }
