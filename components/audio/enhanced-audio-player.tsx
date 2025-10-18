@@ -72,6 +72,18 @@ export function EnhancedAudioPlayer({
     { format: 'flac', label: 'FLAC (Lossless)' },
   ];
 
+  // Suppress WaveSurfer AbortErrors globally
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (event.reason?.name === 'AbortError') {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }, []);
+
   // Initialize WaveSurfer
   useEffect(() => {
     if (!waveformRef.current) return;
@@ -119,30 +131,35 @@ export function EnhancedAudioPlayer({
     wavesurferRef.current = wavesurfer;
 
     return () => {
-      try {
-        if (wavesurfer) {
-          try {
-            // Stop playback first to prevent AbortError
-            if (wavesurfer.isPlaying()) {
-              wavesurfer.pause();
+      // Defer cleanup to prevent React error boundary from catching AbortError
+      const cleanup = async () => {
+        try {
+          if (wavesurfer) {
+            try {
+              // Stop playback first to prevent AbortError
+              if (wavesurfer.isPlaying()) {
+                wavesurfer.pause();
+              }
+              wavesurfer.stop();
+            } catch (e) {
+              // Ignore pause/stop errors
             }
-            wavesurfer.stop();
-          } catch (e) {
-            // Ignore pause/stop errors
+            
+            // Destroy in next tick to prevent unhandled promise rejection
+            setTimeout(() => {
+              try {
+                wavesurfer.destroy();
+              } catch (destroyError) {
+                // Silently ignore AbortError from cancelled requests
+              }
+            }, 0);
           }
-          
-          // Safely destroy - wrap to catch AbortError
-          try {
-            wavesurfer.destroy();
-          } catch (destroyError) {
-            // Ignore destroy errors (including AbortError from cancelled requests)
-            console.debug('WaveSurfer cleanup:', destroyError);
-          }
+        } catch (error) {
+          // Ignore all cleanup errors silently
         }
-      } catch (error) {
-        // Ignore all cleanup errors silently
-        console.debug('WaveSurfer cleanup error:', error);
-      }
+      };
+      
+      cleanup();
     };
   }, [audioUrl, isLooping, onNext]);
 
