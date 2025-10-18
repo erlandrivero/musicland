@@ -122,14 +122,26 @@ export function EnhancedAudioPlayer({
       try {
         if (wavesurfer) {
           try {
-            wavesurfer.pause();
+            // Stop playback first to prevent AbortError
+            if (wavesurfer.isPlaying()) {
+              wavesurfer.pause();
+            }
+            wavesurfer.stop();
           } catch (e) {
-            // Ignore pause errors
+            // Ignore pause/stop errors
           }
-          wavesurfer.destroy();
+          
+          // Safely destroy - wrap to catch AbortError
+          try {
+            wavesurfer.destroy();
+          } catch (destroyError) {
+            // Ignore destroy errors (including AbortError from cancelled requests)
+            console.debug('WaveSurfer cleanup:', destroyError);
+          }
         }
       } catch (error) {
-        // Ignore all cleanup errors
+        // Ignore all cleanup errors silently
+        console.debug('WaveSurfer cleanup error:', error);
       }
     };
   }, [audioUrl, isLooping, onNext]);
