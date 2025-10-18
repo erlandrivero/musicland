@@ -373,9 +373,9 @@ export function EnhancedAudioPlayer({
       </div>
 
       {/* Footer Info */}
-      <div className="px-4 pb-4 flex items-center justify-between gap-2 text-xs text-gray-500">
-        <span className="font-mono flex-shrink-0" title={`Full Track ID: ${trackId}`}>
-          Track ID: {trackId.slice(0, 12)}...
+      <div className="px-4 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-gray-500">
+        <span className="font-mono break-all" title={`Full Track ID: ${trackId}`}>
+          Track ID: {trackId}
         </span>
         <span className="text-blue-600 font-medium whitespace-nowrap flex-shrink-0">AI Generated • High Quality</span>
       </div>
