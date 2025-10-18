@@ -131,35 +131,37 @@ export function EnhancedAudioPlayer({
     wavesurferRef.current = wavesurfer;
 
     return () => {
-      // Defer cleanup to prevent React error boundary from catching AbortError
-      const cleanup = async () => {
-        try {
-          if (wavesurfer) {
-            try {
-              // Stop playback first to prevent AbortError
-              if (wavesurfer.isPlaying()) {
-                wavesurfer.pause();
-              }
-              wavesurfer.stop();
-            } catch (e) {
-              // Ignore pause/stop errors
-            }
-            
-            // Destroy in next tick to prevent unhandled promise rejection
-            setTimeout(() => {
-              try {
-                wavesurfer.destroy();
-              } catch (destroyError) {
-                // Silently ignore AbortError from cancelled requests
-              }
-            }, 0);
-          }
-        } catch (error) {
-          // Ignore all cleanup errors silently
-        }
-      };
+      // Clear ref immediately to prevent any new operations
+      wavesurferRef.current = null;
       
-      cleanup();
+      // Cleanup without throwing errors
+      if (wavesurfer) {
+        try {
+          // Try to pause if playing
+          if (typeof wavesurfer.isPlaying === 'function' && wavesurfer.isPlaying()) {
+            wavesurfer.pause();
+          }
+        } catch (e) {
+          // Ignore
+        }
+        
+        try {
+          wavesurfer.stop();
+        } catch (e) {
+          // Ignore
+        }
+        
+        // Queue destroy for next event loop to avoid blocking unmount
+        Promise.resolve().then(() => {
+          try {
+            wavesurfer.destroy();
+          } catch (e) {
+            // Silently ignore - component is already unmounted
+          }
+        }).catch(() => {
+          // Catch any promise rejections
+        });
+      }
     };
   }, [audioUrl, isLooping, onNext]);
 
@@ -371,9 +373,11 @@ export function EnhancedAudioPlayer({
       </div>
 
       {/* Footer Info */}
-      <div className="px-4 pb-4 flex items-center justify-between text-xs text-gray-500">
-        <span>Track ID: {trackId.slice(0, 8)}...</span>
-        <span className="text-blue-600 font-medium">AI Generated • High Quality</span>
+      <div className="px-4 pb-4 flex items-center justify-between gap-2 text-xs text-gray-500">
+        <span className="font-mono flex-shrink-0" title={`Full Track ID: ${trackId}`}>
+          Track ID: {trackId.slice(0, 12)}...
+        </span>
+        <span className="text-blue-600 font-medium whitespace-nowrap flex-shrink-0">AI Generated • High Quality</span>
       </div>
     </div>
   );
