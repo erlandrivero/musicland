@@ -55,6 +55,9 @@ export default function GeneratePage() {
         title: formData.title,
         make_instrumental: formData.instrumental,
         mv: formData.modelVersion,
+        gender: formData.vocalGender,
+        styleWeight: formData.styleWeight,
+        weirdness: formData.weirdness,
       };
 
       // Call generation API

@@ -47,7 +47,19 @@ export function GenerationStatus({
         const response = await fetch(`/api/music/status/${generationId}`);
         
         if (!response.ok) {
-          throw new Error('Failed to fetch generation status');
+          const errorData = await response.json().catch(() => ({}));
+          
+          // Check for copyright error
+          if (errorData.message && errorData.message.toLowerCase().includes('copyright')) {
+            clearInterval(pollInterval);
+            setError('COPYRIGHT_ERROR: ' + errorData.message);
+            setStatus('failed');
+            onStatusChange?.('failed');
+            onError?.('COPYRIGHT_ERROR: ' + errorData.message);
+            return;
+          }
+          
+          throw new Error(errorData.message || 'Failed to fetch generation status');
         }
 
         const data = await response.json();
@@ -134,18 +146,57 @@ export function GenerationStatus({
   }
 
   if (status === 'failed') {
+    const isCopyrightError = error?.includes('COPYRIGHT_ERROR') || error?.toLowerCase().includes('copyright');
+    
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+      <div className={`p-6 border rounded-lg ${
+        isCopyrightError 
+          ? 'bg-amber-50 border-amber-200' 
+          : 'bg-red-50 border-red-200'
+      }`}>
         <div className="flex items-start gap-3">
-          <XCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+          {isCopyrightError ? (
+            <AlertCircle size={24} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          ) : (
+            <XCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+          )}
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-900">Generation Failed</h3>
-            <p className="text-sm text-red-700 mt-1">
-              {error || 'An error occurred during generation'}
-            </p>
+            <h3 className={`text-lg font-semibold ${
+              isCopyrightError ? 'text-amber-900' : 'text-red-900'
+            }`}>
+              {isCopyrightError ? '⚠️ Copyright Issue Detected' : 'Generation Failed'}
+            </h3>
+            
+            {isCopyrightError ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-amber-800 font-medium">
+                  The lyrics you provided contain copyrighted material and cannot be used.
+                </p>
+                <div className="text-sm text-amber-700 bg-amber-100 p-3 rounded-lg">
+                  <p className="font-semibold mb-2">What you can do:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Write your own original lyrics</li>
+                    <li>Use Simple Mode to let AI generate lyrics automatically</li>
+                    <li>Significantly modify the lyrics to avoid copyright</li>
+                  </ul>
+                </div>
+                <p className="text-xs text-amber-600 mt-2">
+                  Original error: {error?.replace('COPYRIGHT_ERROR: ', '')}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-red-700 mt-1">
+                {error || 'An error occurred during generation'}
+              </p>
+            )}
+            
             <button
               onClick={() => window.location.reload()}
-              className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+              className={`mt-3 px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium ${
+                isCopyrightError 
+                  ? 'bg-amber-600 hover:bg-amber-700' 
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
             >
               Try Again
             </button>
