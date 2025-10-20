@@ -89,12 +89,31 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
           setError(null);
         }
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'MIDI generation failed');
+        // Handle different error types
+        if (response.status === 504) {
+          throw new Error('MIDI service timeout. The service may not be running or is taking too long. Please check MIDI_SERVICE_URL environment variable.');
+        }
+        
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          throw new Error(`MIDI generation failed with status ${response.status}`);
+        }
+        
+        throw new Error(errorData.error || errorData.message || 'MIDI generation failed');
       }
     } catch (err: any) {
       console.error('[MIDI Viewer] Error:', err);
-      setError(err.message || 'Failed to generate MIDI');
+      
+      // Provide helpful error messages
+      let errorMsg = err.message || 'Failed to generate MIDI';
+      
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        errorMsg = 'Cannot connect to MIDI service. Please ensure the Python MIDI service is deployed and MIDI_SERVICE_URL is set correctly.';
+      }
+      
+      setError(errorMsg);
     } finally {
       setIsGenerating(false);
     }
@@ -294,7 +313,21 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
         )}
       </div>
 
-      {/* Info Box */}
+      {/* Info Boxes */}
+      {!midiStatus?.midiUrl && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+          <h4 className="font-semibold text-amber-900 dark:text-amber-200 mb-2 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            Service Required
+          </h4>
+          <p className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
+            MIDI generation requires a separate Python service to be deployed. If you see timeout errors, 
+            ensure your MIDI service is running on Render and the <code className="px-1 py-0.5 bg-amber-100 dark:bg-amber-900 rounded">MIDI_SERVICE_URL</code> environment 
+            variable is set correctly.
+          </p>
+        </div>
+      )}
+
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
         <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2 flex items-center gap-2">
           <Music className="w-4 h-4" />
