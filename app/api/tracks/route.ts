@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, title, audioUrl, videoUrl, imageUrl, tags, duration, lyrics, mv, prompt, style, model } = body;
+    const { id, title, audioUrl, videoUrl, imageUrl, tags, duration, lyrics, mv, prompt, style, model, taskId, audioId } = body;
 
     if (!audioUrl) {
       return NextResponse.json(
@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
       prompt: prompt || null,
       style: style || null,
       model: model || null,
+      taskId: taskId || null,
+      audioId: audioId || null,
       status: 'completed',
       isFavorite: false,
       playCount: 0,

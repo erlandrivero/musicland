@@ -17,7 +17,11 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log(`[Generate MIDI] Starting for track: ${id}`);
+    // Get quality parameter from request body
+    const body = await request.json().catch(() => ({}));
+    const quality = body.quality || 'standard'; // default to standard
+
+    console.log(`[Generate MIDI] Starting for track: ${id} (quality: ${quality})`);
 
     // Get track from database
     const db = await getDatabase();
@@ -34,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: 'No audio URL found' }, { status: 400 });
     }
 
-    // Check if MIDI already exists
+    // Check if MIDI already exists (skip cache if regenerating)
     if (track.midiUrl && !request.nextUrl.searchParams.get('regenerate')) {
       return NextResponse.json({
         success: true,
@@ -45,7 +49,7 @@ export async function POST(
 
     // Call Python MIDI service on Render
     console.log(`[Generate MIDI] Calling Python service: ${MIDI_SERVICE_URL}`);
-    console.log(`[Generate MIDI] Request body:`, { audioUrl: track.audioUrl, trackId: id });
+    console.log(`[Generate MIDI] Request body:`, { audioUrl: track.audioUrl, trackId: id, quality });
     
     const midiResponse = await fetch(`${MIDI_SERVICE_URL}/generate-midi`, {
       method: 'POST',
@@ -54,9 +58,10 @@ export async function POST(
       },
       body: JSON.stringify({
         audioUrl: track.audioUrl,
-        trackId: id
+        trackId: id,
+        quality: quality
       }),
-      signal: AbortSignal.timeout(120000) // 2 minute timeout
+      signal: AbortSignal.timeout(180000) // 3 minute timeout (for high quality)
     }).catch((fetchError) => {
       console.error('[Generate MIDI] Fetch failed:', fetchError);
       throw new Error(`MIDI service error: ${fetchError.message}`);

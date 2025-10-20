@@ -19,6 +19,8 @@ export interface Track {
   playCount?: number;
   downloadCount?: number;
   mv?: string;
+  taskId?: string | null;
+  audioId?: string | null;
 }
 
 interface TrackListProps {

@@ -22,6 +22,7 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [quality, setQuality] = useState<'fast' | 'standard' | 'high'>('standard');
 
   // Fetch MIDI status on mount
   useEffect(() => {
@@ -64,12 +65,13 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
     setError(null);
 
     try {
-      console.log('[MIDI Viewer] Generating MIDI for track:', trackId, regenerate ? '(regenerate)' : '');
+      console.log('[MIDI Viewer] Generating MIDI for track:', trackId, regenerate ? '(regenerate)' : '', 'quality:', quality);
       
       const url = `/api/tracks/${trackId}/generate-midi${regenerate ? '?regenerate=true' : ''}`;
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quality })
       });
 
       if (response.ok) {
@@ -198,6 +200,59 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
         </div>
       )}
 
+      {/* Quality Selector - Only show before generation */}
+      {!midiStatus?.midiUrl && (
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <h4 className="font-semibold text-purple-900 dark:text-purple-200 mb-3">Quality Settings</h4>
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 p-3 rounded-lg border-2 border-transparent hover:bg-purple-100 dark:hover:bg-purple-800/30 cursor-pointer transition-colors">
+              <input
+                type="radio"
+                name="quality"
+                value="fast"
+                checked={quality === 'fast'}
+                onChange={(e) => setQuality(e.target.value as 'fast')}
+                className="w-4 h-4 text-purple-600"
+              />
+              <div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Fast (~30 sec)</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Quick transcription, may have extra notes</div>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 rounded-lg border-2 border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/30 cursor-pointer">
+              <input
+                type="radio"
+                name="quality"
+                value="standard"
+                checked={quality === 'standard'}
+                onChange={(e) => setQuality(e.target.value as 'standard')}
+                className="w-4 h-4 text-purple-600"
+              />
+              <div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">Standard (~60 sec) ⭐ Recommended</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Balanced accuracy and speed</div>
+              </div>
+            </label>
+            
+            <label className="flex items-center gap-3 p-3 rounded-lg border-2 border-transparent hover:bg-purple-100 dark:hover:bg-purple-800/30 cursor-pointer transition-colors">
+              <input
+                type="radio"
+                name="quality"
+                value="high"
+                checked={quality === 'high'}
+                onChange={(e) => setQuality(e.target.value as 'high')}
+                className="w-4 h-4 text-purple-600"
+              />
+              <div>
+                <div className="font-medium text-gray-900 dark:text-gray-100">High (~90 sec)</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Most accurate, fewer false notes</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons */}
       <div className="flex flex-col gap-3">
         {!midiStatus?.midiUrl ? (
@@ -209,12 +264,12 @@ export function MidiViewer({ trackId, title, audioUrl }: MidiViewerProps) {
             {isGenerating ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Generating MIDI...</span>
+                <span>Generating MIDI ({quality})...</span>
               </>
             ) : (
               <>
                 <Music className="w-5 h-5" />
-                <span>Generate MIDI</span>
+                <span>Generate MIDI ({quality})</span>
               </>
             )}
           </button>

@@ -46,17 +46,22 @@ def health_check():
 def generate_midi():
     """
     Generate MIDI from audio URL
-    Expected JSON: { "audioUrl": "https://...", "trackId": "..." }
+    Expected JSON: { 
+        "audioUrl": "https://...", 
+        "trackId": "...",
+        "quality": "standard" | "fast" | "high"  // optional, default: standard
+    }
     """
     try:
         data = request.get_json()
         audio_url = data.get('audioUrl')
         track_id = data.get('trackId')
+        quality = data.get('quality', 'standard')  # default to standard
         
         if not audio_url or not track_id:
             return jsonify({'error': 'Missing audioUrl or trackId'}), 400
         
-        print(f'[MIDI Service] Processing track: {track_id}')
+        print(f'[MIDI Service] Processing track: {track_id} (quality: {quality})')
         
         # Download audio file
         audio_path = os.path.join(TEMP_DIR, f'{track_id}.mp3')
@@ -70,11 +75,26 @@ def generate_midi():
         
         print(f'[MIDI Service] Audio downloaded: {os.path.getsize(audio_path)} bytes')
         
-        # Generate MIDI using Basic Pitch
+        # Quality-based parameters
+        # Higher onset/frame thresholds = fewer false positives, better accuracy
+        if quality == 'high':
+            onset_threshold = 0.5   # More strict (fewer false notes)
+            frame_threshold = 0.3   # More strict
+            print('[MIDI Service] Using HIGH quality settings')
+        elif quality == 'fast':
+            onset_threshold = 0.3   # Less strict (faster, more notes)
+            frame_threshold = 0.1   # Less strict
+            print('[MIDI Service] Using FAST quality settings')
+        else:  # standard
+            onset_threshold = 0.4   # Balanced
+            frame_threshold = 0.2   # Balanced
+            print('[MIDI Service] Using STANDARD quality settings')
+        
+        # Generate MIDI using Basic Pitch with optimized parameters
         output_dir = os.path.join(TEMP_DIR, 'midi_output')
         os.makedirs(output_dir, exist_ok=True)
         
-        print('[MIDI Service] Running Basic Pitch...')
+        print(f'[MIDI Service] Running Basic Pitch (onset: {onset_threshold}, frame: {frame_threshold})...')
         
         predict_and_save(
             audio_path_list=[audio_path],
@@ -83,7 +103,14 @@ def generate_midi():
             sonify_midi=False,
             save_model_outputs=False,
             save_notes=False,
-            model_or_model_path=ICASSP_2022_MODEL_PATH
+            model_or_model_path=ICASSP_2022_MODEL_PATH,
+            onset_threshold=onset_threshold,
+            frame_threshold=frame_threshold,
+            minimum_note_length=127.70,  # ~32nd note at 120 BPM (filters very short notes)
+            minimum_frequency=None,       # Keep all frequencies
+            maximum_frequency=None,
+            multiple_pitch_bends=False,   # Simpler MIDI
+            melodia_trick=True            # Better melody extraction
         )
         
         # Find generated MIDI file

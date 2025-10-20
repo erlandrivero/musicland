@@ -113,7 +113,17 @@ export default function GeneratePage() {
   };
 
   const handleGenerationComplete = async (audioUrl: string, data: any) => {
+    // Debug: Log all data fields
+    console.log('[Generate] Generation complete data:', {
+      generationId,
+      dataId: data.id,
+      clip_id: data.clip_id,
+      allKeys: Object.keys(data)
+    });
+    
     // Save track to MongoDB automatically
+    // taskId = generationId (the task ID from generation API)
+    // audioId = data.id or data.clip_id (the clip/audio ID from Suno)
     try {
       await fetch('/api/tracks', {
         method: 'POST',
@@ -128,6 +138,8 @@ export default function GeneratePage() {
           lyrics: data.lyrics,
           status: 'completed',
           createdAt: data.created_at || new Date().toISOString(),
+          taskId: generationId,
+          audioId: data.id || data.clip_id,
         }),
       });
     } catch (saveError) {

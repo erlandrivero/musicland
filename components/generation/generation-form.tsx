@@ -52,6 +52,7 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
   const [weirdness, setWeirdness] = useState(0.5);
   const [title, setTitle] = useState('');
   const [lyrics, setLyrics] = useState('');
+  
 
   const MAX_DESCRIPTION_LENGTH = 400;
   const MAX_LYRICS_LENGTH = 3000;
@@ -63,11 +64,14 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
     hasCredits(GENERATION_COST) &&
     !isGenerating;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!canGenerate) return;
 
+    submitForm();
+  };
+
+  const submitForm = () => {
     const formData: GenerationFormData = {
       description: description.trim(),
       genre: genre.trim(),
@@ -83,6 +87,8 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
 
     onSubmit(formData);
   };
+
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -215,9 +221,12 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
                     rows={6}
                     disabled={isGenerating}
                   />
-                  <span className="text-xs text-gray-500 mt-1">
-                    {lyrics.length}/{MAX_LYRICS_LENGTH}
-                  </span>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-gray-500">
+                      {lyrics.length}/{MAX_LYRICS_LENGTH}
+                    </span>
+                  </div>
+                  
                 </div>
               </div>
             )}

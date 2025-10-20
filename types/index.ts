@@ -42,6 +42,8 @@ export interface Track {
   userEmail?: string
   projectId?: string
   generationId?: string
+  taskId?: string | null
+  audioId?: string | null
 }
 
 export interface CreditsResponse {

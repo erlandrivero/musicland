@@ -50,7 +50,7 @@ class SunoAPIClient {
   private apiKey: string;
 
   constructor() {
-    this.baseURL = process.env.SUNOAPI_BASE_URL || 'https://api.sunoapi.com/api/v1';
+    this.baseURL = process.env.SUNOAPI_BASE_URL || 'https://api.sunoapi.org/api/v1';
     this.apiKey = process.env.SUNOAPI_KEY || '';
 
     if (!this.apiKey) {
