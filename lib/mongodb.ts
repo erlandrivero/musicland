@@ -64,7 +64,7 @@ export default clientPromise;
 // Helper function to get database
 export async function getDatabase(): Promise<Db> {
   const client = await clientPromise;
-  return client.db('ai-music-studio');
+  return client.db('ship-fast-code');
 }
 
 // Collection names

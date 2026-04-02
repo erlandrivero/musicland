@@ -16,18 +16,28 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDatabase();
+    
+    console.log('[Tracks API] User email:', session.user.email);
+    console.log('[Tracks API] User ID:', session.user.id);
+    
     // Query by email to support both old and new authentication methods
+    const query = { 
+      $or: [
+        { userEmail: session.user.email },
+        { userId: session.user.id }
+      ]
+    };
+    
+    console.log('[Tracks API] Query:', JSON.stringify(query));
+    
     const tracks = await db
       .collection(COLLECTIONS.TRACKS)
-      .find({ 
-        $or: [
-          { userEmail: session.user.email },
-          { userId: session.user.id }
-        ]
-      })
+      .find(query)
       .sort({ createdAt: -1 })
       .toArray();
 
+    console.log('[Tracks API] Found tracks:', tracks.length);
+    
     return NextResponse.json(tracks, { status: 200 });
   } catch (error: any) {
     console.error('[API] Failed to fetch tracks:', error);
