@@ -26,27 +26,39 @@ export const authConfig = {
     verifyRequest: '/auth/verify-request',
   },
   callbacks: {
-    async session({ session, token, user }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub
-      }
-      // Preserve the image URL from token
-      if (token.picture && session.user) {
-        session.user.image = token.picture as string
+    async session({ session, token }) {
+      if (session.user) {
+        // Set user properties from token
+        if (token.email) {
+          session.user.email = token.email as string
+        }
+        if (token.name) {
+          session.user.name = token.name as string
+        }
+        if (token.picture) {
+          session.user.image = token.picture as string
+        }
+        if (token.sub) {
+          session.user.id = token.sub
+        }
       }
       return session
     },
     async jwt({ token, user, account, profile }) {
       if (user) {
-        token.sub = user.id
+        // Store user email as the primary identifier
+        token.email = user.email
+        token.name = user.name
         // Store the image URL in the token
         if (user.image) {
           token.picture = user.image
         }
       }
-      // For Google OAuth, preserve the profile picture
-      if (account?.provider === 'google' && profile?.picture) {
+      // For Google OAuth, preserve the profile picture and email
+      if (account?.provider === 'google' && profile) {
         token.picture = profile.picture
+        token.email = profile.email
+        token.name = profile.name
       }
       return token
     },
