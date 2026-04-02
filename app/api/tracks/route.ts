@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session || !session.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'You must be logged in' },
         { status: 401 }
@@ -16,9 +16,15 @@ export async function GET(request: NextRequest) {
     }
 
     const db = await getDatabase();
+    // Query by email to support both old and new authentication methods
     const tracks = await db
       .collection(COLLECTIONS.TRACKS)
-      .find({ userId: session.user.id })
+      .find({ 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      })
       .sort({ createdAt: -1 })
       .toArray();
 
@@ -74,7 +80,7 @@ export async function POST(request: NextRequest) {
     
     const track = {
       id: trackId,
-      userId: session.user.id,
+      userId: session.user.id || session.user.email, // Fallback to email if no ID
       userEmail: session.user.email,
       title: title || 'Untitled Track',
       audioUrl,

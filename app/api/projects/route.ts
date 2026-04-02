@@ -8,7 +8,7 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    if (!session || !session.user) {
+    if (!session || !session.user?.email) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'You must be logged in' },
         { status: 401 }
@@ -18,7 +18,12 @@ export async function GET(request: NextRequest) {
     const db = await getDatabase();
     const projects = await db
       .collection(COLLECTIONS.PROJECTS)
-      .find({ userId: session.user.id })
+      .find({ 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      })
       .sort({ updatedAt: -1 })
       .toArray();
 
@@ -72,7 +77,13 @@ export async function POST(request: NextRequest) {
     // Check if project already exists
     const existingProject = await db
       .collection(COLLECTIONS.PROJECTS)
-      .findOne({ name: name.trim(), userId: session.user.id });
+      .findOne({ 
+        name: name.trim(), 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      });
 
     if (existingProject && trackId) {
       // Add track to existing project
@@ -98,7 +109,8 @@ export async function POST(request: NextRequest) {
     const projectData = {
       name: name.trim(),
       description: description?.trim() || null,
-      userId: session.user.id,
+      userId: session.user.id || session.user.email,
+      userEmail: session.user.email,
       trackIds: trackId ? [trackId] : [],
       createdAt: now,
       updatedAt: now,
