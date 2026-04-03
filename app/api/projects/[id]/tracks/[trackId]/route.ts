@@ -24,7 +24,13 @@ export async function DELETE(
 
     // Remove track from project
     const result = await db.collection(COLLECTIONS.PROJECTS).findOneAndUpdate(
-      { _id: new ObjectId(id), userId: session.user.id },
+      { 
+        _id: new ObjectId(id), 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      },
       {
         $pull: { trackIds: trackId } as any,
         $set: { updatedAt: new Date() },

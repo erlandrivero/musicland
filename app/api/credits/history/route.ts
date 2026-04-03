@@ -20,7 +20,12 @@ export async function GET(request: NextRequest) {
     // Get all credit history for the user
     const history = await db
       .collection(COLLECTIONS.CREDIT_HISTORY)
-      .find({ userId: session.user.id })
+      .find({ 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      })
       .sort({ createdAt: -1 })
       .limit(100) // Limit to last 100 transactions
       .toArray();

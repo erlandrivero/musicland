@@ -34,7 +34,13 @@ export async function POST(
 
     // Add tracks to project
     const result = await db.collection(COLLECTIONS.PROJECTS).findOneAndUpdate(
-      { _id: new ObjectId(id), userId: session.user.id },
+      { 
+        _id: new ObjectId(id), 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      },
       {
         $addToSet: { trackIds: { $each: trackIds } },
         $set: { updatedAt: new Date() },

@@ -25,7 +25,13 @@ export async function POST(
     // Update favorite status in MongoDB
     const db = await getDatabase();
     const result = await db.collection(COLLECTIONS.TRACKS).findOneAndUpdate(
-      { id, userId: session.user.id },
+      { 
+        id, 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      },
       { $set: { isFavorite, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );

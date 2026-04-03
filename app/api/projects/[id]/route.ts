@@ -24,7 +24,13 @@ export async function GET(
 
     const project = await db
       .collection(COLLECTIONS.PROJECTS)
-      .findOne({ _id: new ObjectId(id), userId: session.user.id });
+      .findOne({ 
+        _id: new ObjectId(id), 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      });
 
     if (!project) {
       return NextResponse.json(
@@ -85,7 +91,13 @@ export async function PATCH(
 
     // Update the project
     const result = await db.collection(COLLECTIONS.PROJECTS).findOneAndUpdate(
-      { _id: new ObjectId(id), userId: session.user.id },
+      { 
+        _id: new ObjectId(id), 
+        $or: [
+          { userEmail: session.user.email },
+          { userId: session.user.id }
+        ]
+      },
       {
         $set: {
           name: name.trim(),
@@ -145,7 +157,10 @@ export async function DELETE(
     // Delete the project
     const result = await db.collection(COLLECTIONS.PROJECTS).deleteOne({
       _id: new ObjectId(id),
-      userId: session.user.id,
+      $or: [
+        { userEmail: session.user.email },
+        { userId: session.user.id }
+      ]
     });
 
     if (result.deletedCount === 0) {
