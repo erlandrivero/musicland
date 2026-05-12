@@ -1,0 +1,390 @@
+# Complete Implementation: AI Prompt Generator with Gemini 2.5 Flash & Google Search
+
+**Date:** May 11, 2026
+**Model:** Gemini 2.5 Flash
+**Features:** Real-time Google Search Grounding, JSON Mode, 400-character hard limits
+
+---
+
+## 1. Setup & Dependencies
+
+First, install the official Google Gen AI SDK:
+```bash
+npm install @google/genai
+```
+
+Add this to your `.env.local`:
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+---
+
+## 2. API Route (`app/api/generate-prompts/route.ts`)
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
+import { connectDB } from '@/lib/mongodb';
+import PromptHistory from '@/models/PromptHistory';
+
+// Initialize the SDK. It automatically picks up the GEMINI_API_KEY environment variable.
+const ai = new GoogleGenAI({});
+
+const SYSTEM_PROMPT = `You are an expert musicologist, audio engineer, and AI music generation specialist.
+When given an artist name and song title, you must perform a deep internal analysis before generating prompts.
+
+STEP 1: DEEP MUSICAL RESEARCH
+Use your Google Search tool to find specific details about the requested song and artist if you do not know them perfectly.
+Identify:
+- Artist Vocal Style: Timbre, range, signature techniques (e.g., belting, falsetto, vocal fry, grit)
+- Genre & Sub-genre: Primary genre and specific sub-genres or fusions
+- Tempo & Rhythm: Approximate BPM, time signature, groove (e.g., swing, straight, syncopated)
+- Instrumentation: Key instruments, signature sounds, production techniques (e.g., analog, synth-heavy, acoustic)
+- Mood & Theme: Emotional resonance, lyrical themes, atmosphere
+
+STEP 2: PROMPT GENERATION
+Based strictly on your research in Step 1, generate exactly 4 different Suno AI music generation prompts.
+Each prompt MUST be under 400 characters.
+Each prompt should capture a different aspect or variation of the song's style:
+- Prompt 1: Classic/original style faithful to the song's exact production era and arrangement
+- Prompt 2: Genre/instrumentation focus (highlighting the specific musical arrangement)
+- Prompt 3: Vocal and emotional focus (highlighting the singer's specific delivery style)
+- Prompt 4: Modern reinterpretation or alternative arrangement
+
+Format your response as valid JSON only, with no extra text:
+{
+  "artist_analysis": "Detailed 2-sentence analysis of the artist's specific vocal style and signature sound",
+  "song_analysis": "Detailed 2-sentence analysis of the song's tempo, instrumentation, and production style",
+  "prompts": [
+    { "title": "Classic Style", "prompt": "...", "characters": 0 },
+    { "title": "Instrumental Focus", "prompt": "...", "characters": 0 },
+    { "title": "Vocal & Emotion", "prompt": "...", "characters": 0 },
+    { "title": "Modern Interpretation", "prompt": "...", "characters": 0 }
+  ]
+}
+
+CRITICAL RULES:
+1. Be highly specific with musical terms (e.g., use "slap bass" instead of "bass", "warm contralto" instead of "female voice").
+2. Every prompt in the "prompt" field MUST be 400 characters or fewer. Count carefully.`;
+
+export async function POST(request: NextRequest) {
+  try {
+    const { artist, song, userId } = await request.json();
+
+    if (!artist || !song) {
+      return NextResponse.json({ error: 'Artist and song are required' }, { status: 400 });
+    }
+
+    const userMessage = `Artist: ${artist}\nSong: ${song}\n\nResearch this song and generate 4 Suno AI music prompts, each under 400 characters.`;
+
+    // Call Gemini 2.5 Flash WITH Google Search Grounding enabled
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: userMessage,
+      config: {
+        systemInstruction: SYSTEM_PROMPT,
+        temperature: 0.7,
+        responseMimeType: "application/json", // Forces JSON output
+        tools: [{ googleSearch: {} }], // Enables real-time web search
+      }
+    });
+
+    const rawResponse = response.text || '';
+    const parsed = JSON.parse(rawResponse);
+
+    // Validate and trim prompts to 400 chars to guarantee safety
+    const validatedPrompts = parsed.prompts.map((p: any) => ({
+      title: p.title,
+      prompt: p.prompt.substring(0, 400),
+      characters: Math.min(p.prompt.length, 400),
+    }));
+
+    // Save to MongoDB (Optional but recommended)
+    if (userId) {
+      try {
+        await connectDB();
+        await PromptHistory.create({
+          userId,
+          artist,
+          song,
+          artistAnalysis: parsed.artist_analysis,
+          songAnalysis: parsed.song_analysis,
+          prompts: validatedPrompts,
+          modelUsed: 'gemini-2.5-flash-search'
+        });
+      } catch (dbError) {
+        console.error('Failed to save prompt history:', dbError);
+        // Continue even if DB save fails
+      }
+    }
+
+    return NextResponse.json({
+      artist,
+      song,
+      artistAnalysis: parsed.artist_analysis,
+      songAnalysis: parsed.song_analysis,
+      prompts: validatedPrompts,
+    });
+
+  } catch (error: any) {
+    console.error('Prompt generation error:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate prompts. Please try again.' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+---
+
+## 3. MongoDB Model (`models/PromptHistory.ts`)
+
+```typescript
+import mongoose, { Schema, Document } from 'mongoose';
+
+export interface IPromptHistory extends Document {
+  userId: string;
+  artist: string;
+  song: string;
+  artistAnalysis: string;
+  songAnalysis: string;
+  prompts: Array<{
+    title: string;
+    prompt: string;
+    characters: number;
+  }>;
+  modelUsed: string;
+  createdAt: Date;
+}
+
+const PromptHistorySchema = new Schema({
+  userId: { type: String, required: true, index: true },
+  artist: { type: String, required: true },
+  song: { type: String, required: true },
+  artistAnalysis: { type: String },
+  songAnalysis: { type: String },
+  prompts: [{
+    title: String,
+    prompt: String,
+    characters: Number
+  }],
+  modelUsed: { type: String, default: 'gemini-2.5-flash-search' },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export default mongoose.models.PromptHistory || mongoose.model<IPromptHistory>('PromptHistory', PromptHistorySchema);
+```
+
+---
+
+## 4. Frontend Components
+
+### `components/PromptCard.tsx`
+```tsx
+import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+
+interface PromptCardProps {
+  title: string;
+  prompt: string;
+  characters: number;
+  onUsePrompt: (prompt: string) => void;
+}
+
+export default function PromptCard({ title, prompt, characters, onUsePrompt }: PromptCardProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Color code the character count
+  const getCharColor = () => {
+    if (characters > 380) return 'text-orange-500';
+    if (characters > 300) return 'text-yellow-500';
+    return 'text-green-500';
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:border-indigo-500 transition-colors">
+      <div className="flex justify-between items-center mb-3">
+        <h4 className="font-semibold text-gray-900 dark:text-white">{title}</h4>
+        <span className={`text-xs font-medium ${getCharColor()}`}>
+          {characters}/400 chars
+        </span>
+      </div>
+      
+      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg font-mono">
+        {prompt}
+      </p>
+      
+      <div className="flex gap-2">
+        <button
+          onClick={handleCopy}
+          className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
+        >
+          {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+        <button
+          onClick={() => onUsePrompt(prompt)}
+          className="flex-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          Use Prompt
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### `components/PromptGenerator.tsx`
+```tsx
+'use client';
+
+import { useState } from 'react';
+import { Search, Loader2, Music, User } from 'lucide-react';
+import PromptCard from './PromptCard';
+
+interface GeneratedData {
+  artistAnalysis: string;
+  songAnalysis: string;
+  prompts: Array<{
+    title: string;
+    prompt: string;
+    characters: number;
+  }>;
+}
+
+export default function PromptGenerator({ onSelectPrompt }: { onSelectPrompt: (prompt: string) => void }) {
+  const [artist, setArtist] = useState('');
+  const [song, setSong] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [data, setData] = useState<GeneratedData | null>(null);
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!artist || !song) return;
+
+    setLoading(true);
+    setError('');
+    setData(null);
+
+    try {
+      const response = await fetch('/api/generate-prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ artist, song, userId: 'current-user-id' }), // Replace with actual user ID
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate prompts');
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-4xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 rounded-2xl">
+      <div className="mb-8 text-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Smart Prompt Generator</h2>
+        <p className="text-gray-600 dark:text-gray-400">Enter a song and artist. Our AI will research it and generate 4 perfect Suno prompts.</p>
+      </div>
+
+      <form onSubmit={handleGenerate} className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex-1 relative">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Artist Name (e.g. Michael Jackson)"
+            value={artist}
+            onChange={(e) => setArtist(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+            required
+          />
+        </div>
+        <div className="flex-1 relative">
+          <Music className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Song Title (e.g. Beat It)"
+            value={song}
+            onChange={(e) => setSong(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={loading || !artist || !song}
+          className="py-3 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors"
+        >
+          {loading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
+          {loading ? 'Researching...' : 'Generate'}
+        </button>
+      </form>
+
+      {error && (
+        <div className="p-4 mb-8 bg-red-50 text-red-600 rounded-xl text-center">
+          {error}
+        </div>
+      )}
+
+      {data && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800">
+            <h3 className="font-semibold text-indigo-900 dark:text-indigo-300 mb-2">AI Research Analysis</h3>
+            <p className="text-sm text-indigo-800 dark:text-indigo-200 mb-2"><strong>Artist:</strong> {data.artistAnalysis}</p>
+            <p className="text-sm text-indigo-800 dark:text-indigo-200"><strong>Song:</strong> {data.songAnalysis}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {data.prompts.map((p, i) => (
+              <PromptCard
+                key={i}
+                title={p.title}
+                prompt={p.prompt}
+                characters={p.characters}
+                onUsePrompt={onSelectPrompt}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+---
+
+## 5. Windsurf Implementation Prompt
+
+Copy and paste this directly into Windsurf to build the feature:
+
+```text
+I want to add a "Smart Prompt Generator" feature to my AI Music Studio app. 
+The user will input an Artist and Song, and the app will use Gemini 2.5 Flash with Google Search Grounding to research the song and generate 4 Suno AI prompts (each strictly under 400 characters).
+
+Please implement the following:
+
+1. Install the Google Gen AI SDK: `npm install @google/genai`
+2. Create the MongoDB model at `models/PromptHistory.ts` to save the generated prompts.
+3. Create the API route at `app/api/generate-prompts/route.ts` using Gemini 2.5 Flash. Ensure you enable `tools: [{ googleSearch: {} }]` and `responseMimeType: "application/json"`. Use the deep research system prompt I will provide.
+4. Create the `PromptCard.tsx` component to display individual prompts with a copy button and a color-coded character counter (green < 300, yellow < 380, orange < 400).
+5. Create the `PromptGenerator.tsx` component with the artist/song inputs, loading state, and the display of the AI's research analysis and the 4 prompt cards.
+6. Integrate the `PromptGenerator` component into my main music generation page, perhaps as a tab next to the manual prompt input. When the user clicks "Use Prompt" on a card, it should auto-fill the main music generation input field.
+
+Please ask me for the exact code for the API route and components, and I will paste them for you to use.
+```

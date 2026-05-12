@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Sparkles, AlertCircle } from 'lucide-react';
 import { useCredits } from '@/hooks/use-credits';
 import { CreditCostPreview } from '@/components/credits';
@@ -35,9 +35,10 @@ export interface GenerationFormData {
 interface GenerationFormProps {
   onSubmit: (data: GenerationFormData) => void;
   isGenerating: boolean;
+  initialPrompt?: string;
 }
 
-export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) {
+export function GenerationForm({ onSubmit, isGenerating, initialPrompt }: GenerationFormProps) {
   const { credits, hasCredits, isLoading: creditsLoading } = useCredits();
   const [showAdvanced, setShowAdvanced] = useState(false);
   
@@ -53,6 +54,12 @@ export function GenerationForm({ onSubmit, isGenerating }: GenerationFormProps) 
   const [title, setTitle] = useState('');
   const [lyrics, setLyrics] = useState('');
   
+  // Auto-fill description when prompt is selected
+  useEffect(() => {
+    if (initialPrompt) {
+      setDescription(initialPrompt);
+    }
+  }, [initialPrompt]);
 
   const MAX_DESCRIPTION_LENGTH = 400;
   const MAX_LYRICS_LENGTH = 3000;

@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard';
 import { GenerationForm, GenerationStatus, TrackResult, type GenerationFormData } from '@/components/generation';
 import { useCredits, useCreditHistory } from '@/hooks/use-credits';
 import { InsufficientCreditsModal } from '@/components/credits';
-import { Sparkles } from 'lucide-react';
+import { PromptGenerator } from '@/components/prompt';
+import { Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface GeneratedTrack {
   id: string;
@@ -30,6 +31,9 @@ export default function GeneratePage() {
   const [generatedTrack, setGeneratedTrack] = useState<GeneratedTrack | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
+  const [showPromptGenerator, setShowPromptGenerator] = useState(false);
+  const [selectedPrompt, setSelectedPrompt] = useState<string>('');
+  const formRef = useRef<HTMLDivElement>(null);
 
   const handleGenerate = async (formData: GenerationFormData) => {
     setError(null);
@@ -212,6 +216,13 @@ export default function GeneratePage() {
     }
   };
 
+  const handlePromptSelect = (prompt: string) => {
+    setSelectedPrompt(prompt);
+    setShowPromptGenerator(false);
+    // Scroll to form
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -226,11 +237,40 @@ export default function GeneratePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Generation Form */}
           <div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+            {/* Smart Prompt Generator */}
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 overflow-hidden">
+              <button
+                onClick={() => setShowPromptGenerator(!showPromptGenerator)}
+                className="w-full p-4 flex items-center justify-between hover:bg-white/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-blue-600" />
+                  <div className="text-left">
+                    <h3 className="font-semibold text-gray-900">Smart Prompt Generator</h3>
+                    <p className="text-sm text-gray-600">Let AI research and create perfect prompts for you</p>
+                  </div>
+                </div>
+                {showPromptGenerator ? (
+                  <ChevronUp className="w-5 h-5 text-gray-600" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-600" />
+                )}
+              </button>
+              
+              {showPromptGenerator && (
+                <div className="p-6 pt-0 border-t border-blue-100">
+                  <PromptGenerator onSelectPrompt={handlePromptSelect} />
+                </div>
+              )}
+            </div>
+
+            {/* Generation Form */}
+            <div ref={formRef} className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Create Your Music</h2>
               <GenerationForm
                 onSubmit={handleGenerate}
                 isGenerating={isGenerating}
+                initialPrompt={selectedPrompt}
               />
             </div>
 
