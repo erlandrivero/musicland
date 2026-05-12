@@ -7,7 +7,7 @@ import { DashboardLayout } from '@/components/dashboard';
 import { GenerationForm, GenerationStatus, TrackResult, type GenerationFormData } from '@/components/generation';
 import { useCredits, useCreditHistory } from '@/hooks/use-credits';
 import { InsufficientCreditsModal } from '@/components/credits';
-import { PromptGenerator } from '@/components/prompt';
+import { PromptGenerator, PromptHistory } from '@/components/prompt';
 import { Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface GeneratedTrack {
@@ -295,6 +295,11 @@ export default function GeneratePage() {
                   <span>Use custom mode for full creative control</span>
                 </li>
               </ul>
+            </div>
+
+            {/* Prompt History Section */}
+            <div className="mt-6 bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <PromptHistory onSelectPrompt={handlePromptSelect} />
             </div>
           </div>
 
