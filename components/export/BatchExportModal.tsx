@@ -97,7 +97,9 @@ export function BatchExportModal({ isOpen, onClose, track }: BatchExportModalPro
         
         switch (format) {
           case 'audio':
-            await downloadFile(track.audioUrl, `${sanitizedTitle}.mp3`);
+            // Use download API to bypass CORS issues
+            const downloadUrl = `/api/music/download/${track.id}?format=mp3-high`;
+            await downloadFile(downloadUrl, `${sanitizedTitle}.mp3`);
             break;
             
           case 'lyrics':
