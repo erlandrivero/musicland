@@ -101,7 +101,9 @@ export function EnhancedAudioPlayer({
       normalize: true,
     });
 
-    wavesurfer.load(audioUrl);
+    // Use proxied API endpoint to bypass CORS issues
+    const proxyUrl = `/api/tracks/${trackId}/play`;
+    wavesurfer.load(proxyUrl);
 
     wavesurfer.on('ready', () => {
       setTotalDuration(wavesurfer.getDuration());
