@@ -5,9 +5,6 @@ import { savePromptHistory } from '@/lib/db/promptHistory';
 
 export const runtime = 'nodejs';
 
-// Initialize Gemini AI
-const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_STUDIO_API_KEY || '' });
-
 const SYSTEM_PROMPT = `You are an expert musicologist, audio engineer, and AI music generation specialist.
 When given an artist name and song title, you must perform a deep internal analysis before generating prompts.
 
@@ -66,13 +63,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for API key
+    const apiKey = process.env.GOOGLE_AI_STUDIO_API_KEY;
+    if (!apiKey) {
+      console.error('[Prompt Generator] GOOGLE_AI_STUDIO_API_KEY not found in environment');
+      return NextResponse.json(
+        { error: 'CONFIGURATION_ERROR', message: 'Gemini API key not configured. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     console.log('[Prompt Generator] Generating prompts for:', artist, '-', song);
+    console.log('[Prompt Generator] API Key present:', !!apiKey);
+
+    // Initialize Gemini AI
+    const genAI = new GoogleGenAI({ apiKey });
 
     const userMessage = `Artist: ${artist}\nSong: ${song}\n\nResearch this song and generate 4 Suno AI music prompts, each under 400 characters.`;
 
     // Call Gemini 2.5 Flash with Google Search Grounding
     const result = await genAI.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash-thinking-exp-1219',
       contents: userMessage,
       config: {
         systemInstruction: SYSTEM_PROMPT,
