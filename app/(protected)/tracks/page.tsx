@@ -80,26 +80,28 @@ export default function TracksPage() {
 
   const handleDownload = async (trackId: string, format: string) => {
     try {
-      // Get download URL from API
+      // Get file directly from API (proxied to avoid CORS)
       const response = await fetch(`/api/music/download/${trackId}?format=${format}`);
       if (!response.ok) {
-        throw new Error('Failed to get download URL');
+        throw new Error('Failed to download track');
       }
       
-      const data = await response.json();
-      const { downloadUrl, title } = data;
-      
-      // Fetch the actual audio file
-      const audioResponse = await fetch(downloadUrl);
-      if (!audioResponse.ok) {
-        throw new Error('Failed to download audio file');
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `track.${format.split('-')[0] || 'mp3'}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
       }
       
-      const blob = await audioResponse.blob();
+      // Download the file
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${title || 'track'}.${format.split('-')[0] || 'mp3'}`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
