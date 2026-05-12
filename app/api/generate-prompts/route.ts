@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     // Call Gemini 2.5 Flash with Google Search Grounding
     const result = await genAI.models.generateContent({
-      model: 'gemini-2.0-flash-thinking-exp-1219',
+      model: 'gemini-2.5-flash',
       contents: userMessage,
       config: {
         systemInstruction: SYSTEM_PROMPT,
