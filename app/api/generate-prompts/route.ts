@@ -82,13 +82,13 @@ export async function POST(request: NextRequest) {
     const userMessage = `Artist: ${artist}\nSong: ${song}\n\nResearch this song and generate 4 Suno AI music prompts, each under 400 characters.`;
 
     // Call Gemini 2.5 Flash with Google Search Grounding
+    // Note: Can't use responseMimeType with tools, so we parse JSON manually
     const result = await genAI.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: userMessage,
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0.7,
-        responseMimeType: 'application/json',
         tools: [{ googleSearch: {} }], // Enable real-time web search
       },
     });
@@ -97,7 +97,15 @@ export async function POST(request: NextRequest) {
 
     console.log('[Prompt Generator] Raw response:', rawResponse);
 
-    const parsed = JSON.parse(rawResponse);
+    // Extract JSON from response (may have markdown code blocks)
+    let jsonText = rawResponse.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+
+    const parsed = JSON.parse(jsonText);
 
     // Validate and trim prompts to 400 chars to guarantee safety
     const validatedPrompts = parsed.prompts.map((p: any) => ({
