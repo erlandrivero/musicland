@@ -1,34 +1,20 @@
 import { NextAuthConfig } from "next-auth"
 import Google from "next-auth/providers/google"
-import Resend from "next-auth/providers/resend"
-
-// Build providers array conditionally
-const providers: any[] = [
-  Google({
-    clientId: process.env.GOOGLE_CLIENT_ID!,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    authorization: {
-      params: {
-        prompt: "consent",
-        access_type: "offline",
-        response_type: "code"
-      }
-    }
-  }),
-];
-
-// Only add Resend if API key is configured
-if (process.env.RESEND_API_KEY) {
-  providers.push(
-    Resend({
-      apiKey: process.env.RESEND_API_KEY,
-      from: process.env.EMAIL_FROM || "noreply@aimusicstudio.art",
-    })
-  );
-}
 
 export const authConfig = {
-  providers,
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
+    }),
+  ],
   pages: {
     signIn: '/auth/signin',
     signOut: '/auth/signout',
