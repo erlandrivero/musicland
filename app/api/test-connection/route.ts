@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sunoAPI, isSunoAPIError } from '@/lib/sunoapi';
+import { getDatabase } from '@/lib/mongodb';
 
 export const runtime = 'nodejs';
 
@@ -15,64 +15,32 @@ export async function GET(request: NextRequest) {
   const results: TestResult[] = [];
   let overallSuccess = true;
 
-  // Test 1: API Key Validation
-  console.log('[Test] Starting API key validation...');
+  // Test 1: MongoDB Connection
+  console.log('[Test] Testing MongoDB connection...');
   try {
-    const validation = await sunoAPI.validateAPIKey();
-    
-    if (validation.valid) {
-      results.push({
-        test: 'API Key Validation',
-        status: 'success',
-        message: 'API key is valid and authenticated',
-        data: {
-          credits: validation.credits,
-        },
-      });
-    } else {
-      overallSuccess = false;
-      results.push({
-        test: 'API Key Validation',
-        status: 'failed',
-        message: validation.message,
-      });
-    }
-  } catch (error: any) {
-    overallSuccess = false;
-    results.push({
-      test: 'API Key Validation',
-      status: 'failed',
-      message: 'Failed to validate API key',
-      error: error.message || 'Unknown error',
-    });
-  }
-
-  // Test 2: Fetch Credits
-  console.log('[Test] Fetching credits...');
-  try {
-    const credits = await sunoAPI.getCredits();
+    const db = await getDatabase();
+    const collections = await db.listCollections().toArray();
     
     results.push({
-      test: 'Fetch Credits',
+      test: 'MongoDB Connection',
       status: 'success',
-      message: 'Successfully fetched credit balance',
+      message: 'Successfully connected to MongoDB',
       data: {
-        credits: credits.credits,
-        extraCredits: credits.extra_credits,
+        database: db.databaseName,
+        collections: collections.length,
       },
     });
   } catch (error: any) {
     overallSuccess = false;
-    const errorMessage = isSunoAPIError(error) ? error.message : 'Failed to fetch credits';
     results.push({
-      test: 'Fetch Credits',
+      test: 'MongoDB Connection',
       status: 'failed',
-      message: errorMessage,
-      error: error.error || 'Unknown error',
+      message: 'Failed to connect to MongoDB',
+      error: error.message || 'Unknown error',
     });
   }
 
-  // Test 3: Test Generation Request (Dry Run - Check Parameters Only)
+  // Test 2: Generation Request Validation
   console.log('[Test] Validating generation parameters...');
   try {
     // We'll validate the request structure without actually generating
@@ -112,13 +80,14 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Test 4: Environment Configuration
+  // Test 3: Environment Configuration
   console.log('[Test] Checking environment configuration...');
   const envChecks = {
     SUNOAPI_KEY: !!process.env.SUNOAPI_KEY,
     SUNOAPI_BASE_URL: !!process.env.SUNOAPI_BASE_URL,
-    DATABASE_URL: !!process.env.DATABASE_URL,
+    MONGODB_URI: !!process.env.MONGODB_URI,
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    NEXTAUTH_URL: !!process.env.NEXTAUTH_URL,
   };
 
   const missingEnvVars = Object.entries(envChecks)

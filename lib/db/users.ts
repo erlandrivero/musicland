@@ -204,7 +204,7 @@ export async function deductCredits(
 }
 
 /**
- * Add credits to user (for allocations, refunds, bonuses)
+ * Add credits to user (for allocations, bonuses)
  */
 export async function addCredits(
   userId: string | ObjectId,
@@ -220,6 +220,41 @@ export async function addCredits(
       $set: { 
         updatedAt: new Date(),
         lastCreditAllocation: new Date(),
+      },
+    },
+    { returnDocument: 'after' }
+  );
+  
+  if (!result) {
+    return { success: false, newBalance: 0 };
+  }
+  
+  return {
+    success: true,
+    newBalance: result.credits,
+  };
+}
+
+/**
+ * Refund credits to user (for failed generations)
+ * This adds credits back AND decrements creditsUsed
+ */
+export async function refundCredits(
+  userId: string | ObjectId,
+  amount: number
+): Promise<{ success: boolean; newBalance: number }> {
+  const db = await getDatabase();
+  const objectId = typeof userId === 'string' ? new ObjectId(userId) : userId;
+  
+  const result = await db.collection<User>(COLLECTIONS.USERS).findOneAndUpdate(
+    { _id: objectId },
+    {
+      $inc: { 
+        credits: amount,
+        creditsUsed: -amount, // Reverse the usage
+      },
+      $set: { 
+        updatedAt: new Date(),
       },
     },
     { returnDocument: 'after' }

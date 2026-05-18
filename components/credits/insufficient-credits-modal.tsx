@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { AlertCircle, Coins, X, ExternalLink } from 'lucide-react';
+import { AlertCircle, Coins, X } from 'lucide-react';
 import { useCredits } from '@/hooks/use-credits';
 
 interface InsufficientCreditsModalProps {
@@ -153,14 +153,14 @@ export function InsufficientCreditsModal({
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
-                      // Navigate to purchase page
-                      window.open('https://sunoapi.com/credits', '_blank');
+                      // Navigate to pricing page
+                      window.location.href = '/#pricing';
+                      onClose();
                     }}
                     className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     <Coins size={20} />
-                    Purchase Credits
-                    <ExternalLink size={16} />
+                    View Plans
                   </button>
                   <button
                     onClick={onClose}
@@ -172,7 +172,7 @@ export function InsufficientCreditsModal({
 
                 {/* Info */}
                 <p className="text-xs text-gray-500 text-center mt-4">
-                  Credits are managed through SunoAPI. You&apos;ll be redirected to their platform to complete your purchase.
+                  Upgrade your subscription plan to get more credits each month.
                 </p>
               </Dialog.Panel>
             </Transition.Child>

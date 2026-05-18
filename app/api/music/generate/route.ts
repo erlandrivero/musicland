@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { sunoAPI, isSunoAPIError, GenerationRequest } from '@/lib/sunoapi';
 import { getDatabase, COLLECTIONS } from '@/lib/mongodb';
+import { getUserByEmail, deductCredits, refundCredits } from '@/lib/db/users';
+
+const GENERATION_COST = 10;
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
+  let userEmail: string | null = null; // Store for error handling
+  
   try {
     // Check authentication
     const session = await auth();
@@ -15,6 +20,8 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+    
+    userEmail = session.user.email || null;
 
     // Parse request body
     const body = await request.json();
@@ -54,15 +61,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user's credits from SunoAPI
-    const creditsData = await sunoAPI.getCredits();
+    // Fetch user from local database
+    const user = await getUserByEmail(session.user.email!);
     
-    if (creditsData.credits < 10) {
+    if (!user) {
       return NextResponse.json(
-        { error: 'INSUFFICIENT_CREDITS', message: 'You need at least 10 credits to generate music' },
+        { error: 'USER_NOT_FOUND', message: 'User account not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check user's local credits
+    if (user.credits < GENERATION_COST) {
+      return NextResponse.json(
+        { error: 'INSUFFICIENT_CREDITS', message: `You need at least ${GENERATION_COST} credits to generate music` },
         { status: 402 }
       );
     }
+
+    // Deduct credits BEFORE generation
+    const deductResult = await deductCredits(user._id, GENERATION_COST);
+    
+    if (!deductResult.success) {
+      return NextResponse.json(
+        { error: 'CREDIT_DEDUCTION_FAILED', message: deductResult.error || 'Failed to deduct credits' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`[API] Deducted ${GENERATION_COST} credits. New balance: ${deductResult.newBalance}`);
 
     // Add gender to tags if specified
     let finalTags = tags;
@@ -141,6 +168,22 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[API] Music generation error:', error);
     console.error('[API] Error stack:', error.stack);
+
+    // Refund credits if generation failed
+    if (userEmail) {
+      try {
+        const user = await getUserByEmail(userEmail);
+        if (user) {
+          const refundResult = await refundCredits(user._id, GENERATION_COST);
+          if (refundResult.success) {
+            console.log(`[API] Refunded ${GENERATION_COST} credits due to generation failure. New balance: ${refundResult.newBalance}`);
+          }
+        }
+      } catch (refundError) {
+        console.error('[API] Failed to refund credits:', refundError);
+        // Don't fail the error response if refund fails
+      }
+    }
 
     if (isSunoAPIError(error)) {
       return NextResponse.json(

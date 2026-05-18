@@ -19,7 +19,7 @@ export interface CreditUsageRecord {
   description: string;
 }
 
-// Credit costs based on SunoAPI pricing (10 credits per generation)
+// Credit costs for local credit system (10 credits per generation)
 export const CREDIT_COSTS = {
   STANDARD_GENERATION: 10,  // Standard music generation
   EXTENDED_GENERATION: 10,  // Extended generation (same cost)
@@ -33,11 +33,11 @@ export const CREDIT_COSTS = {
 export const LOW_CREDIT_THRESHOLD = 10;
 
 /**
- * Custom hook for managing credits with real SunoAPI integration
+ * Custom hook for managing credits with local MongoDB integration
  * Features:
- * - Fetches real credit balance from API
- * - 5-minute cache with background refresh
- * - Automatic polling every 30 seconds when active
+ * - Fetches credit balance from local database
+ * - Real-time updates with 10-second polling
+ * - Automatic refresh on window focus
  * - Optimistic updates with rollback
  */
 export function useCredits() {
