@@ -102,19 +102,24 @@ export async function POST(request: NextRequest) {
     const responseData = await response.json();
 
     if (!response.ok) {
-      console.error('VibeReach API Error:', responseData);
+      console.error('[VibeReach API Error]');
+      console.error('Status:', response.status);
+      console.error('Response:', JSON.stringify(responseData, null, 2));
+      console.error('Payload sent:', JSON.stringify(payload, null, 2));
       
       // Handle duplicate contact gracefully
-      if (response.status === 409 || responseData.message?.includes('already exists')) {
-        console.log('[Lead Capture] Contact already exists, updating...');
+      if (response.status === 409 || responseData.message?.includes('already exists') || responseData.message?.includes('duplicate')) {
+        console.log('[Lead Capture] Contact already exists, treating as success');
         return NextResponse.json({ 
           success: true, 
           duplicate: true,
-          message: 'Contact updated successfully'
+          message: 'You\'re already on our list! Check your email for the guide.'
         });
       }
       
-      throw new Error(responseData.message || 'Failed to create contact in VibeReach');
+      // Return detailed error in development
+      const errorMessage = responseData.message || responseData.error || 'Failed to create contact in VibeReach';
+      throw new Error(errorMessage);
     }
 
     console.log('[Lead Capture] Success:', responseData.contact?.id);
@@ -127,12 +132,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('[Lead Capture] Error:', error);
+    console.error('[Lead Capture] Error stack:', error.stack);
     
-    // Don't expose internal errors to client
+    // Provide helpful error messages
     return NextResponse.json(
       { 
         error: 'Failed to process lead',
-        message: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: process.env.NODE_ENV === 'development' 
+          ? error.message 
+          : 'Please try again or contact support if the issue persists.',
+        details: process.env.NODE_ENV === 'development' ? {
+          errorType: error.name,
+          errorMessage: error.message
+        } : undefined
       },
       { status: 500 }
     );
