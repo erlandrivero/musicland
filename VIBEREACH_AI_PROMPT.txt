@@ -1,0 +1,195 @@
+Subject: Set Up Lead Magnet Email Automation Workflow
+
+Hi VibeReach Team,
+
+I need help setting up an automated email workflow for my lead magnet campaign. Here are the complete details:
+
+================================================================================
+WORKFLOW CONFIGURATION
+================================================================================
+
+Workflow Name: AI Music Studio - Lead Magnet Delivery
+
+Trigger:
+- Type: Contact Tag Added
+- Tag Name: lead-magnet-prompts
+- Description: This tag is automatically added when someone submits the lead capture form on my website
+
+================================================================================
+ACTION 1: SEND WELCOME EMAIL WITH PDF
+================================================================================
+
+Email Configuration:
+- From Name: AI Music Studio
+- From Email: noreply@aimusicstudio.art (or use your verified domain email)
+- Reply-To: support@aimusicstudio.art (or your support email)
+- Subject Line: 🎵 Your Top 50 AI Music Prompts Are Here!
+- Delay: Send immediately (0 minutes)
+
+Email Body (HTML):
+
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+        ul { padding-left: 20px; }
+        li { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Your AI Music Prompts Are Here!</h1>
+        </div>
+        <div class="content">
+            <p>Hi {{contact.first_name}},</p>
+            
+            <p>Thanks for your interest in AI Music Studio! 🎉</p>
+            
+            <p>As promised, here's your exclusive guide: <strong>Top 50 AI Music Prompts</strong></p>
+            
+            <p style="text-align: center;">
+                <a href="[PDF_LINK_TO_BE_ADDED]" class="button">📥 Download Your PDF Guide</a>
+            </p>
+            
+            <p><strong>What's Inside:</strong></p>
+            <ul>
+                <li>✅ 50 proven prompts for different music genres</li>
+                <li>✅ Tips for getting studio-quality results</li>
+                <li>✅ Examples of successful AI-generated tracks</li>
+                <li>✅ Pro techniques for fine-tuning your music</li>
+            </ul>
+            
+            <hr style="border: 1px solid #ddd; margin: 30px 0;">
+            
+            <p><strong>Ready to create your first AI song?</strong></p>
+            <p>Start your free trial and get 10 credits to generate your first track:</p>
+            
+            <p style="text-align: center;">
+                <a href="https://aimusicstudio.art/signup" class="button">🚀 Start Free Trial</a>
+            </p>
+            
+            <p>Questions? Just reply to this email - we're here to help!</p>
+            
+            <p>Best,<br>
+            The AI Music Studio Team</p>
+            
+            <hr style="border: 1px solid #ddd; margin: 30px 0;">
+            
+            <p style="font-size: 14px; color: #666;">
+                <strong>P.S.</strong> Don't forget to check out our pricing plans for unlimited generations and premium features!
+            </p>
+        </div>
+        <div class="footer">
+            <p>AI Music Studio | Create Studio-Quality Music with AI</p>
+            <p>You're receiving this because you requested our Top 50 AI Music Prompts guide.</p>
+            <p><a href="{{unsubscribe_link}}">Unsubscribe</a></p>
+        </div>
+    </div>
+</body>
+</html>
+
+Note: Please replace [PDF_LINK_TO_BE_ADDED] with the public URL after I upload the PDF to your media library.
+
+================================================================================
+ACTION 2: FOLLOW-UP EMAIL - DAY 1 (OPTIONAL)
+================================================================================
+
+Email Configuration:
+- Delay: 1 day after Action 1
+- Subject Line: 3 Quick Tips to Improve Your AI Music 🎼
+- Content: Brief tips email (I can provide content if needed)
+
+================================================================================
+ACTION 3: FOLLOW-UP EMAIL - DAY 3 (OPTIONAL)
+================================================================================
+
+Email Configuration:
+- Delay: 2 days after Action 2 (total 3 days from signup)
+- Subject Line: How Musicians Are Creating Hits with AI Music
+- Content: Success story and social proof (I can provide content if needed)
+
+================================================================================
+ACTION 4: UPGRADE OFFER - DAY 7 (OPTIONAL)
+================================================================================
+
+Email Configuration:
+- Delay: 4 days after Action 3 (total 7 days from signup)
+- Subject Line: Special Offer: 20% Off Your First Month 🎁
+- Content: Limited-time discount offer (I can provide content if needed)
+
+================================================================================
+ADDITIONAL TAGS TO ADD
+================================================================================
+
+When the workflow runs, please also add these tags to the contact:
+- lead-magnet-delivered (after email is sent)
+- ai-music-studio-nurture (to add to nurture sequence)
+
+================================================================================
+PDF FILE UPLOAD
+================================================================================
+
+I will upload the PDF file "Top_50_AI_Music_Prompts.pdf" to the Media Library. Please:
+1. Confirm where I should upload it
+2. Provide the public URL so I can update the email template
+3. Or you can insert the PDF link directly into the email template
+
+================================================================================
+WORKFLOW SETTINGS
+================================================================================
+
+- Status: Active (once tested)
+- Run Once Per Contact: Yes (don't send duplicate emails)
+- Time Zone: [Your timezone, e.g., EST/PST]
+- Send Time: Immediate (no specific time restrictions)
+
+================================================================================
+TESTING REQUEST
+================================================================================
+
+Before activating, please:
+1. Send me a test email to verify formatting
+2. Confirm the PDF link works
+3. Check that all merge tags ({{contact.first_name}}, {{unsubscribe_link}}) are working
+
+================================================================================
+MY ACCOUNT DETAILS
+================================================================================
+
+- Location ID: [Your Location ID from .env.local]
+- Website: https://aimusicstudio.art
+- Contact Email: [Your email]
+
+================================================================================
+INTEGRATION DETAILS
+================================================================================
+
+This workflow is triggered by my website's lead capture form, which uses the GoHighLevel API v2 to:
+1. Create/update contact in VibeReach
+2. Add tags: ai-music-studio-lead and lead-magnet-prompts
+3. Set source as: "Landing Page Form"
+
+The API integration is already set up and working on my end.
+
+================================================================================
+QUESTIONS
+================================================================================
+
+1. Can you confirm the workflow will trigger immediately when the tag is added via API?
+2. What's the best way to upload the PDF file?
+3. Can you provide the public URL for the PDF once uploaded?
+4. Is there a way to track open rates and click rates for this workflow?
+
+================================================================================
+
+Thank you for your help setting this up!
+
+Best regards,
+[Your Name]
