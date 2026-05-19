@@ -84,11 +84,13 @@ export default function LeadMagnetSection() {
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex -space-x-2">
-                    {[1, 2, 3, 4].map((i) => (
+                    {['SM', 'MR', 'ET', 'DP'].map((initials, i) => (
                       <div
                         key={i}
-                        className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white"
-                      />
+                        className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 border-2 border-white flex items-center justify-center text-white text-xs font-semibold"
+                      >
+                        {initials}
+                      </div>
                     ))}
                   </div>
                   <div className="text-sm font-semibold text-gray-900">
