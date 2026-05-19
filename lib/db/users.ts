@@ -27,8 +27,8 @@ export async function createUser(userData: {
     subscriptionStatus: null,
     subscriptionPlan: 'free',
     
-    // Free tier gets 50 one-time credits
-    credits: 50,
+    // Free tier gets 10 one-time credits
+    credits: 10,
     creditsUsed: 0,
     
     // Timestamps
