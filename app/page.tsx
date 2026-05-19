@@ -4,6 +4,7 @@ import { DemoSection } from '@/components/landing/demo-section'
 import { PricingSection } from '@/components/landing/pricing-section'
 import { TestimonialsSection } from '@/components/landing/testimonials-section'
 import { FooterSection } from '@/components/landing/footer-section'
+import { LeadMagnetSection } from '@/components/marketing'
 
 export default function HomePage() {
   return (
@@ -13,6 +14,7 @@ export default function HomePage() {
       <DemoSection />
       <PricingSection />
       <TestimonialsSection />
+      <LeadMagnetSection />
       <FooterSection />
     </main>
   )

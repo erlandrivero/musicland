@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     // 2. Check if user exists in database
     console.log('[User Init] Session image URL:', session.user.image);
     let user = await getUserByEmail(session.user.email);
+    let isNewUser = false;
     
     // 3. If user doesn't exist, create them
     if (!user) {
@@ -26,6 +27,7 @@ export async function GET(request: NextRequest) {
         name: session.user.name || 'User',
         image: session.user.image || undefined,
       });
+      isNewUser = true;
       console.log('[User Init] ✅ User created successfully');
     } else {
       // Update user's image if it changed (Google profile updates)
@@ -61,6 +63,7 @@ export async function GET(request: NextRequest) {
         credits: user.credits,
         creditsUsed: user.creditsUsed,
       },
+      isNewUser,
     });
 
   } catch (error: any) {

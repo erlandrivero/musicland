@@ -32,6 +32,12 @@ export default function DashboardPage() {
         const initRes = await fetch('/api/user/init', { cache: 'no-store' });
         const initData = initRes.ok ? await initRes.json() : null;
 
+        // Redirect new users to welcome page
+        if (initData?.isNewUser) {
+          router.push('/welcome');
+          return;
+        }
+
         // Fetch tracks
         const tracksRes = await fetch('/api/tracks', { cache: 'no-store' });
         const tracks = tracksRes.ok ? await tracksRes.json() : [];
